@@ -5,6 +5,8 @@
 #include "config_loader.h"
 #include "sec_someip_service.h"
 
+using namespace cgw_sec;
+
 static std::atomic<bool> running{true};
 
 void signalHandler([[maybe_unused]] int signum) {

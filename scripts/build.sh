@@ -17,7 +17,12 @@ cd "$BUILD_DIR"
 cmake -DCMAKE_BUILD_TYPE=$BUILD_TYPE ..
 
 # Build
-make -j$(nproc)
+if [[ "$(uname)" == "Darwin" ]]; then
+    JOBS=$(sysctl -n hw.ncpu)
+else
+    JOBS=$(nproc)
+fi
+make -j$JOBS
 
 # Run tests
 ctest --output-on-failure

@@ -1,12 +1,13 @@
 #include <iostream>
-#include <signal.h>
+#include <csignal>
+#include <atomic>
 #include <unistd.h>
 #include "config_loader.h"
 #include "sec_someip_service.h"
 
-static volatile bool running = true;
+static std::atomic<bool> running{true};
 
-void signalHandler(int signum) {
+void signalHandler([[maybe_unused]] int signum) {
     running = false;
 }
 

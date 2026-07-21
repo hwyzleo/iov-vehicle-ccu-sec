@@ -1,1 +1,7 @@
-// TODO: Implement src/data_models.cpp
+#include "data_models.h"
+
+namespace cgw_sec {
+
+// Data models implementation (if needed)
+
+} // namespace cgw_sec

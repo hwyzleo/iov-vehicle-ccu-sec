@@ -1,0 +1,6 @@
+type: "software"
+storage_path: "/tmp/cgw_sec_se_hsm"
+key_files:
+  OTA_VEHICLE_ROOT: "keys/ota_vehicle_root.bin"
+  CGW_DEVICE_ROOT: "keys/cgw_device_root.bin"
+  DIAG_SEEDKEY_SECRET: "keys/diag_seedkey_secret.bin"

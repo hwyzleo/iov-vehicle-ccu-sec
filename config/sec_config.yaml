@@ -1,0 +1,4 @@
+se_hsm_type: "software"
+default_security_level: 1
+seed_expiration_ms: 30000
+max_seed_pool_size: 100

@@ -1,0 +1,7 @@
+service_id: 0x1234
+instance_id: 0x5678
+get_seed_method_id: 0x0001
+verify_key_method_id: 0x0002
+derive_ota_session_method_id: 0x0003
+derive_by_uid_method_id: 0x0004
+wrap_by_uid_method_id: 0x0005

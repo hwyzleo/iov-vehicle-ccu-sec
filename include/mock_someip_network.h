@@ -1421,7 +1421,15 @@ private:
                     continue;
                 }
                 
-    
+                {
+                    char client_ip[INET_ADDRSTRLEN];
+                    inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
+                    int client_port = ntohs(client_addr.sin_port);
+                    std::cout << "Client connected: fd=" << client_fd
+                              << ", addr=" << client_ip << ":" << client_port
+                              << ", service=0x" << std::hex << service
+                              << ", instance=0x" << instance << std::dec << std::endl;
+                }
                 
                 // 为本次连接分配唯一序号（用于线程索引，避免 fd 复用导致的键冲突）
                 uint64_t conn_id;

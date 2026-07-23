@@ -1,7 +1,7 @@
 # CGW-SEC SOME/IP 配置
-# Service ID / Instance ID: 取自 CGW 模块库 SSOT（CGW-SEC-DSN-CR-002 定案）
-# Service ID: 0x7726, Instance ID: 0x0001, Port: 30502
-service_id: 0x7726
+# Service ID / Instance ID: 取自整车 SOME/IP Service Registry 统一分配（CGW-SEC-DSN-CR-003）
+# Service ID: 0x1140, Instance ID: 0x0001, Transport: TCP, Port: 51140
+service_id: 0x1140
 instance_id: 0x0001
 
 # Method ID 分配（CGW-SEC-DSN-CR-002 定案）
@@ -16,11 +16,11 @@ derive_ota_session_method_id: 0x0003
 derive_by_uid_method_id: 0x0004
 wrap_by_uid_method_id: 0x0005
 
-# 端点配置 (SSOT: CGW 模块库属性)
+# 端点配置 (SSOT: SOME/IP Service Registry)
 # 传输类型: TCP (request/response 为主，需可靠传输)
-# 端口: 30502 (CGW-SEC 专用端口，DIAG facade = 30501)
+# 端口: 51140 (CGW-SEC 专用端口，CGW-DIAG = 30501)
 endpoint:
-  port: 30502
+  port: 51140
   protocol: TCP
   unicast: "127.0.0.1"
 

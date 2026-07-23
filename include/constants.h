@@ -7,17 +7,18 @@ namespace cgw_sec {
 
 // ====================================================================
 // SOME/IP Service & Instance ID 定义
-// 来源：CGW 模块库 SSOT（已分配）
+// 来源：整车 SOME/IP Service Registry 统一分配（CGW-SEC-DSN-CR-003）
 // ====================================================================
 
-// Service ID: 0x7726（CGW-SEC 安全服务）
+// Service ID: 0x1140（CGW-SEC 安全服务）
 // Instance ID: 0x0001
-// SOME/IP 端口: 30502
+// Transport: TCP
+// SOME/IP 端口: 51140
 // 完整寻址: Message ID = Service ID << 16 | Method ID
-// 本服务方法即 0x7726_xxxx
-constexpr uint16_t SEC_SERVICE_ID = 0x7726;
+// 本服务方法即 0x1140_xxxx
+constexpr uint16_t SEC_SERVICE_ID = 0x1140;
 constexpr uint16_t SEC_INSTANCE_ID = 0x0001;
-constexpr uint16_t SEC_SOMEIP_PORT = 30502;
+constexpr uint16_t SEC_SOMEIP_PORT = 51140;
 
 // ====================================================================
 // Method ID 分配约定

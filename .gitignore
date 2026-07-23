@@ -71,3 +71,5 @@ Testing/
 
 docs/superpowers/
 graphify-out/
+
+cmake-build-debug/

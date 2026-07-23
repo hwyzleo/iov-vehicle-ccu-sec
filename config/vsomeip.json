@@ -6,14 +6,14 @@
     "applications": [
         {
             "name": "cgw-sec",
-            "id": "0x1234"
+            "id": "0x7726"
         }
     ],
     
     "services": [
         {
-            "service": "0x1234",
-            "instance": "0x5678",
+            "service": "0x7726",
+            "instance": "0x0001",
             "unreliable": "30502",
             "reliable": {
                 "port": "30502",
@@ -41,8 +41,8 @@
     
     "payload-sizes": [
         {
-            "service": "0x1234",
-            "instance": "0x5678",
+            "service": "0x7726",
+            "instance": "0x0001",
             "max-payload-size": "65535"
         }
     ],

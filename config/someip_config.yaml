@@ -1,8 +1,14 @@
 # CGW-SEC SOME/IP 配置
-# Service ID / Instance ID: 临时值，待 CGW 级 SOME/IP ID 分配计划统一指派
-service_id: 0x1234
-instance_id: 0x5678
+# Service ID / Instance ID: 取自 CGW 模块库 SSOT（CGW-SEC-DSN-CR-002 定案）
+# Service ID: 0x7726, Instance ID: 0x0001, Port: 30502
+service_id: 0x7726
+instance_id: 0x0001
 
+# Method ID 分配（CGW-SEC-DSN-CR-002 定案）
+# Method ID 为 service-scoped，完整寻址: Message ID = Service ID << 16 | Method ID
+# 0x0001–0x7FFF 用于 method（request/response）
+# 0x8000–0xFFFF 预留 event/notification
+# 标准命名: METHOD_<动作> 大写蛇形，一经分配不复用、不重编号
 # Method IDs
 get_seed_method_id: 0x0001
 verify_key_method_id: 0x0002

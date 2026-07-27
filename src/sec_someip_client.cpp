@@ -1,5 +1,6 @@
 #include "sec_someip_client.h"
-#include <iostream>
+#include "sec_log_adapter.h"
+#include "sec_log_context.h"
 #include <sstream>
 #include <stdexcept>
 #include <chrono>
@@ -15,21 +16,27 @@ SecSomeipClient::~SecSomeipClient() {
 
 bool SecSomeipClient::initialize() {
     if (running_) {
-        logWarning("Client already initialized");
+        SecLogAdapter::facade().warn("sec.client.already_initialized",
+            "Client already initialized");
         return true;
     }
     
     try {
-        logInfo("Initializing application...");
+        SecLogAdapter::facade().info("sec.client.initializing",
+            "Initializing application...");
         initializeApplication();
-        logInfo("Registering service discovery...");
+        SecLogAdapter::facade().info("sec.client.registering_sd",
+            "Registering service discovery...");
         registerServiceDiscovery();
-        logInfo("Service discovery registered, connected: " + std::to_string(connected_));
+        SecLogAdapter::facade().info("sec.client.sd_registered",
+            "Service discovery registered",
+            {slog::f_bool("connected", connected_.load())});
         
         running_ = true;
         
         // 启动 IO 线程
-        logInfo("Starting IO thread...");
+        SecLogAdapter::facade().info("sec.client.io_thread_starting",
+            "Starting IO thread...");
         ioThread_ = std::thread([this]() {
             application_->start();
         });
@@ -37,11 +44,15 @@ bool SecSomeipClient::initialize() {
         // 等待一下，让服务发现有机会完成
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
         
-        logInfo("SOME/IP client initialized, connected: " + std::to_string(connected_));
+        SecLogAdapter::facade().info("sec.client.initialized",
+            "SOME/IP client initialized",
+            {slog::f_bool("connected", connected_.load())});
         return true;
         
     } catch (const std::exception& e) {
-        logError("Failed to initialize client: " + std::string(e.what()));
+        SecLogAdapter::facade().error("sec.client.init_failed",
+            "Failed to initialize client",
+            {slog::f_str("reason", e.what())});
         return false;
     }
 }
@@ -62,7 +73,8 @@ void SecSomeipClient::deinitialize() {
         ioThread_.join();
     }
     
-    logInfo("SOME/IP client deinitialized");
+    SecLogAdapter::facade().info("sec.client.deinitialized",
+        "SOME/IP client deinitialized");
 }
 
 bool SecSomeipClient::isConnected() const {
@@ -93,21 +105,23 @@ void SecSomeipClient::initializeApplication() {
         std::bind(&SecSomeipClient::onServiceAvailability, this,
                   std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
     
-    logInfo("vsomeip application initialized");
+    SecLogAdapter::facade().info("sec.client.app_initialized",
+        "vsomeip application initialized");
 }
 
 void SecSomeipClient::registerServiceDiscovery() {
     // 请求服务
-    logInfo("Requesting service...");
+    SecLogAdapter::facade().info("sec.client.requesting_service",
+        "Requesting service...");
     application_->request_service(config_.serviceId, config_.instanceId);
-    logInfo("Service request completed, connected: " + std::to_string(connected_));
+    SecLogAdapter::facade().info("sec.client.service_requested",
+        "Service request completed",
+        {slog::f_bool("connected", connected_.load())});
     
-    {
-        std::ostringstream oss;
-        oss << "Service discovery registered: serviceId=0x" << std::hex << config_.serviceId
-            << ", instanceId=0x" << std::hex << config_.instanceId;
-        logInfo(oss.str());
-    }
+    SecLogAdapter::facade().info("sec.client.sd_registered",
+        "Service discovery registered",
+        {slog::f_str("someip_service_id", hex_id(config_.serviceId)),
+         slog::f_str("someip_instance_id", hex_id(config_.instanceId))});
 }
 
 void SecSomeipClient::onServiceAvailability(
@@ -115,14 +129,11 @@ void SecSomeipClient::onServiceAvailability(
     
     if (service == config_.serviceId && instance == config_.instanceId) {
         connected_ = available;
-        {
-            std::ostringstream oss;
-            oss << "Service availability changed: "
-                << (available ? "available" : "unavailable")
-                << " (service=0x" << std::hex << service
-                << ", instance=0x" << std::hex << instance << ")";
-            logInfo(oss.str());
-        }
+        SecLogAdapter::facade().info("sec.client.availability_changed",
+            "Service availability changed",
+            {slog::f_str("result", available ? "available" : "unavailable"),
+             slog::f_str("someip_service_id", hex_id(service)),
+             slog::f_str("someip_instance_id", hex_id(instance))});
     }
 }
 
@@ -137,11 +148,9 @@ void SecSomeipClient::onMessage(const std::shared_ptr<someip::Message>& response
     responseReceived_ = true;
     cv_.notify_all();
     
-    {
-        std::ostringstream oss;
-        oss << "Response received: method=0x" << std::hex << response->get_method();
-        logInfo(oss.str());
-    }
+    SecLogAdapter::facade().info("sec.client.response_received",
+        "Response received",
+        {slog::f_str("someip_method_id", hex_id(response->get_method()))});
 }
 
 SeedResult SecSomeipClient::getSeed(uint8_t level) {
@@ -456,16 +465,17 @@ std::vector<uint8_t> SecSomeipClient::serializeWrapByUidRequest(
 std::vector<uint8_t> SecSomeipClient::sendRequest(uint16_t methodId, 
                                                    const std::vector<uint8_t>& payload) {
     if (!connected_) {
-        logError("Cannot send request: not connected to service");
+        SecLogAdapter::facade().error("sec.client.not_connected",
+            "Cannot send request: not connected to service");
         return {};
     }
     
 #ifdef USE_MOCK_SOMEIP
     // 网络模式：尝试通过TCP socket同步RPC调用
     {
-        std::ostringstream oss;
-        oss << "Sending RPC: method=0x" << std::hex << methodId;
-        logInfo(oss.str());
+        SecLogAdapter::facade().info("sec.client.sending_rpc",
+            "Sending RPC",
+            {slog::f_str("someip_method_id", hex_id(methodId))});
         
         auto result = application_->send_rpc(config_.serviceId, config_.instanceId, methodId, payload);
         
@@ -474,7 +484,9 @@ std::vector<uint8_t> SecSomeipClient::sendRequest(uint16_t methodId,
         }
         
         // 网络 RPC 失败，回退到进程内消息队列
-        logInfo("RPC fallback to in-process: method=0x" + std::to_string(methodId));
+        SecLogAdapter::facade().info("sec.client.rpc_fallback",
+            "RPC fallback to in-process",
+            {slog::f_str("someip_method_id", hex_id(methodId))});
     }
 #endif
     {
@@ -499,11 +511,9 @@ std::vector<uint8_t> SecSomeipClient::sendRequest(uint16_t methodId,
         
         // 发送请求
         application_->send(request);
-        {
-            std::ostringstream oss;
-            oss << "Request sent: method=0x" << std::hex << methodId;
-            logInfo(oss.str());
-        }
+        SecLogAdapter::facade().info("sec.client.request_sent",
+            "Request sent",
+            {slog::f_str("someip_method_id", hex_id(methodId))});
         
         // 等待响应（带超时）
         std::unique_lock<std::mutex> lock(mutex_);
@@ -511,29 +521,14 @@ std::vector<uint8_t> SecSomeipClient::sendRequest(uint16_t methodId,
         bool received = cv_.wait_for(lock, timeout, [this]() { return responseReceived_; });
         
         if (!received) {
-            {
-                std::ostringstream oss;
-                oss << "Request timeout: method=0x" << std::hex << methodId;
-                logError(oss.str());
-            }
+            SecLogAdapter::facade().error("sec.client.request_timeout",
+                "Request timeout",
+                {slog::f_str("someip_method_id", hex_id(methodId))});
             return {};
         }
         
         return responseData_;
     }
-}
-
-// 日志函数实现
-void SecSomeipClient::logInfo(const std::string& message) {
-    std::cout << "[INFO] SecSomeipClient: " << message << std::endl;
-}
-
-void SecSomeipClient::logError(const std::string& message) {
-    std::cerr << "[ERROR] SecSomeipClient: " << message << std::endl;
-}
-
-void SecSomeipClient::logWarning(const std::string& message) {
-    std::cout << "[WARN] SecSomeipClient: " << message << std::endl;
 }
 
 } // namespace cgw_sec

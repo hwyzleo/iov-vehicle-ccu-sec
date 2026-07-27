@@ -48,6 +48,10 @@ endif ()
 find_package(yaml-cpp REQUIRED)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
 
+# CGW Framework (provides cgw-framework-log: Logger, ContextScope, structured fields)
+# CGW-SEC-DSN-CR-004
+find_package(CGWFramework REQUIRED)
+
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
 
@@ -78,6 +82,8 @@ set(LIB_SOURCES
     src/sec_someip_client.cpp
     src/someip_config_loader.cpp
     src/mock_someip_network.cpp
+    src/sec_log_adapter.cpp
+    src/sec_log_context.cpp
 )
 
 
@@ -85,7 +91,7 @@ set(LIB_SOURCES
 # Create cgw_sec library
 add_library(cgw_sec_lib STATIC ${LIB_SOURCES})
 target_include_directories(cgw_sec_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(cgw_sec_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto)
+target_link_libraries(cgw_sec_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto CGWFramework::cgw-framework)
 
 # 根据 SOME/IP 实现添加链接库
 if(USE_MOCK_SOMEIP)
@@ -126,6 +132,9 @@ add_executable(CgwSecTests
     tests/test_sec_someip_server.cpp
     tests/test_sec_someip_client.cpp
     tests/test_integration_someip.cpp
+    tests/test_log_adapter.cpp
+    tests/test_log_events.cpp
+    tests/test_log_integration.cpp
 )
 target_include_directories(CgwSecTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_link_libraries(CgwSecTests PRIVATE cgw_sec_lib GTest::GTest GTest::gmock GTest::Main)

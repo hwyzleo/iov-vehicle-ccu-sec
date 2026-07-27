@@ -46,6 +46,9 @@
 
 #include <nlohmann/json.hpp>
 
+#include "sec_log_adapter.h"
+#include "sec_log_context.h"
+
 namespace mock_someip {
 
 // 类型定义（对齐 vsomeip API）
@@ -380,7 +383,9 @@ public:
         try {
             std::ifstream file(config_path);
             if (!file.is_open()) {
-                std::cerr << "Failed to open config file: " << config_path << std::endl;
+                cgw_sec::SecLogAdapter::facade().error("sec.network.config_load_failed",
+                    "Failed to open network config file",
+                    {cgw_sec::slog::f_str("config_path", config_path)});
                 return false;
             }
             
@@ -425,7 +430,10 @@ public:
             return true;
             
         } catch (const std::exception& e) {
-            std::cerr << "Failed to parse config file: " << e.what() << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.config_parse_failed",
+                "Failed to parse network config file",
+                {cgw_sec::slog::f_str("config_path", config_path),
+                 cgw_sec::slog::f_str("error_message", e.what())});
             return false;
         }
     }
@@ -502,13 +510,19 @@ public:
     int create_tcp_server(const std::string& address, int port) {
         int server_fd = socket(AF_INET, SOCK_STREAM, 0);
         if (server_fd < 0) {
-            std::cerr << "Failed to create socket: " << strerror(errno) << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.socket_create_failed",
+                "Failed to create socket",
+                {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                 cgw_sec::slog::f_int("errno", errno)});
             return -1;
         }
         
         int opt = 1;
         if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, (const char*)&opt, sizeof(opt)) < 0) {
-            std::cerr << "Failed to set socket options: " << strerror(errno) << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.socket_option_failed",
+                "Failed to set socket options",
+                {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                 cgw_sec::slog::f_int("errno", errno)});
             close_socket(server_fd);
             return -1;
         }
@@ -519,13 +533,20 @@ public:
         address_struct.sin_port = htons(port);
         
         if (bind(server_fd, (struct sockaddr*)&address_struct, sizeof(address_struct)) < 0) {
-            std::cerr << "Failed to bind socket: " << strerror(errno) << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.bind_failed",
+                "Failed to bind socket",
+                {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                 cgw_sec::slog::f_int("errno", errno),
+                 cgw_sec::slog::f_int("someip_port", port)});
             close_socket(server_fd);
             return -1;
         }
         
         if (listen(server_fd, 3) < 0) {
-            std::cerr << "Failed to listen on socket: " << strerror(errno) << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.listen_failed",
+                "Failed to listen on socket",
+                {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                 cgw_sec::slog::f_int("errno", errno)});
             close_socket(server_fd);
             return -1;
         }
@@ -537,7 +558,10 @@ public:
     int create_tcp_client(const std::string& address, int port) {
         int sock = socket(AF_INET, SOCK_STREAM, 0);
         if (sock < 0) {
-            std::cerr << "Failed to create socket: " << strerror(errno) << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.socket_create_failed",
+                "Failed to create socket",
+                {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                 cgw_sec::slog::f_int("errno", errno)});
             return -1;
         }
         
@@ -546,13 +570,18 @@ public:
         serv_addr.sin_port = htons(port);
         
         if (inet_pton(AF_INET, address.c_str(), &serv_addr.sin_addr) <= 0) {
-            std::cerr << "Invalid address: " << address << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.invalid_address",
+                "Invalid network address",
+                {cgw_sec::slog::f_str("address", address)});
             close_socket(sock);
             return -1;
         }
         
         if (connect(sock, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-            std::cerr << "Connection failed: " << strerror(errno) << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.connect_failed",
+                "Connection failed",
+                {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                 cgw_sec::slog::f_int("errno", errno)});
             close_socket(sock);
             return -1;
         }
@@ -566,7 +595,10 @@ public:
         while (total_sent < data.size()) {
             ssize_t sent = send(sock, data.data() + total_sent, data.size() - total_sent, 0);
             if (sent < 0) {
-                std::cerr << "Failed to send data: " << strerror(errno) << std::endl;
+                cgw_sec::SecLogAdapter::facade().error("sec.network.send_failed",
+                    "Failed to send data",
+                    {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                     cgw_sec::slog::f_int("errno", errno)});
                 return false;
             }
             total_sent += sent;
@@ -586,7 +618,10 @@ public:
                     std::this_thread::sleep_for(std::chrono::milliseconds(10));
                     continue;
                 }
-                std::cerr << "Failed to receive data: " << strerror(errno) << std::endl;
+                cgw_sec::SecLogAdapter::facade().error("sec.network.receive_failed",
+                    "Failed to receive data",
+                    {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                     cgw_sec::slog::f_int("errno", errno)});
                 return false;
             } else if (received == 0) {
                 // 连接关闭
@@ -606,7 +641,8 @@ public:
         }
         
         if (!NetworkMessageHeader::deserialize(header_data.data(), header_data.size(), header)) {
-            std::cerr << "Failed to deserialize message header" << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.deserialize_failed",
+                "Failed to deserialize message header");
             return false;
         }
         
@@ -1047,9 +1083,12 @@ public:
             enqueue(message);
         }
         } catch (const std::exception& e) {
-            std::cerr << "Exception in send(): " << e.what() << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.send_exception",
+                "Exception in send()",
+                {cgw_sec::slog::f_str("error_message", e.what())});
         } catch (...) {
-            std::cerr << "Unknown exception in send()" << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.send_exception",
+                "Unknown exception in send()");
         }
     }
     
@@ -1380,8 +1419,10 @@ private:
             config_mgr.get_unicast_address(), config.tcp_port);
         
         if (server_fd < 0) {
-            std::cerr << "Failed to start network server for service 0x" 
-                      << std::hex << service << " instance 0x" << instance << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.server_start_failed",
+                "Failed to start network server",
+                {cgw_sec::slog::f_str("someip_service_id", cgw_sec::hex_id(service)),
+                 cgw_sec::slog::f_str("someip_instance_id", cgw_sec::hex_id(instance))});
             return;
         }
         
@@ -1416,7 +1457,10 @@ private:
                         continue;
                     }
                     if (running_) {
-                        std::cerr << "Failed to accept connection: " << strerror(errno) << " (errno=" << errno << ")" << std::endl;
+                        cgw_sec::SecLogAdapter::facade().error("sec.network.accept_failed",
+                            "Failed to accept connection",
+                            {cgw_sec::slog::f_str("error_message", strerror(errno)),
+                             cgw_sec::slog::f_int("errno", errno)});
                     }
                     continue;
                 }
@@ -1425,10 +1469,12 @@ private:
                     char client_ip[INET_ADDRSTRLEN];
                     inet_ntop(AF_INET, &client_addr.sin_addr, client_ip, INET_ADDRSTRLEN);
                     int client_port = ntohs(client_addr.sin_port);
-                    std::cout << "Client connected: fd=" << client_fd
-                              << ", addr=" << client_ip << ":" << client_port
-                              << ", service=0x" << std::hex << service
-                              << ", instance=0x" << instance << std::dec << std::endl;
+                    cgw_sec::SecLogAdapter::facade().info("sec.network.client_connected",
+                        "Client connected",
+                        {cgw_sec::slog::f_int("client_fd", client_fd),
+                         cgw_sec::slog::f_str("client_addr", std::string(client_ip) + ":" + std::to_string(client_port)),
+                         cgw_sec::slog::f_str("someip_service_id", cgw_sec::hex_id(service)),
+                         cgw_sec::slog::f_str("someip_instance_id", cgw_sec::hex_id(instance))});
                 }
                 
                 // 为本次连接分配唯一序号（用于线程索引，避免 fd 复用导致的键冲突）
@@ -1443,11 +1489,14 @@ private:
                     try {
                         handle_client_connection(client_fd, service, instance);
                     } catch (const std::exception& e) {
-                        std::cerr << "Client handler exception on fd=" << client_fd 
-                                  << ": " << e.what() << std::endl;
+                        cgw_sec::SecLogAdapter::facade().error("sec.network.client_handler_exception",
+                            "Client handler exception",
+                            {cgw_sec::slog::f_int("client_fd", client_fd),
+                             cgw_sec::slog::f_str("error_message", e.what())});
                     } catch (...) {
-                        std::cerr << "Unknown exception in client handler on fd=" 
-                                  << client_fd << std::endl;
+                        cgw_sec::SecLogAdapter::facade().error("sec.network.client_handler_exception",
+                            "Unknown exception in client handler",
+                            {cgw_sec::slog::f_int("client_fd", client_fd)});
                     }
                     // 标记本线程已结束，交由 accept 线程回收（不能在此处 join 自己）
                     std::lock_guard<std::mutex> lock(network_mutex_);
@@ -1463,8 +1512,11 @@ private:
             }
         });
         
-        std::cout << "Network server started for service 0x" << std::hex << service 
-                  << " instance 0x" << instance << " on port " << std::dec << config.tcp_port << std::endl;
+        cgw_sec::SecLogAdapter::facade().info("sec.network.server_started",
+            "Network server started",
+            {cgw_sec::slog::f_str("someip_service_id", cgw_sec::hex_id(service)),
+             cgw_sec::slog::f_str("someip_instance_id", cgw_sec::hex_id(instance)),
+             cgw_sec::slog::f_int("someip_port", config.tcp_port)});
     }
     
     void stop_service_network(service_t service, instance_t instance) {
@@ -1517,7 +1569,9 @@ private:
             std::vector<uint8_t> payload;
             
             if (!NetworkManager::get_instance().receive_message(client_fd, header, payload)) {
-                std::cout << "Failed to receive message on fd=" << client_fd << std::endl;
+                cgw_sec::SecLogAdapter::facade().warn("sec.network.receive_message_failed",
+                    "Failed to receive message",
+                    {cgw_sec::slog::f_int("client_fd", client_fd)});
                 break;
             }
             
@@ -1552,7 +1606,9 @@ private:
                 if (target_app) {
                     target_app->enqueue(message);
                 } else {
-                    std::cout << "No target application found for client_id=" << header.client_id << std::endl;
+                    cgw_sec::SecLogAdapter::facade().warn("sec.network.no_target_application",
+                        "No target application found for response",
+                        {cgw_sec::slog::f_str("someip_client_id", cgw_sec::hex_id(header.client_id))});
                 }
             } else {
                 // 这是请求消息，需要处理并发送响应
@@ -1560,9 +1616,12 @@ private:
             }
         }
         } catch (const std::exception& e) {
-            std::cerr << "Exception in client connection handler: " << e.what() << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.client_connection_exception",
+                "Exception in client connection handler",
+                {cgw_sec::slog::f_str("error_message", e.what())});
         } catch (...) {
-            std::cerr << "Unknown exception in client connection handler" << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.client_connection_exception",
+                "Unknown exception in client connection handler");
         }
         
         // 重置当前线程的网络客户端socket
@@ -1598,8 +1657,10 @@ private:
             config_mgr.get_unicast_address(), config.tcp_port);
         
         if (client_fd < 0) {
-            std::cerr << "Failed to connect to remote service 0x" << std::hex << service 
-                      << " instance 0x" << instance << std::endl;
+            cgw_sec::SecLogAdapter::facade().error("sec.network.connect_remote_failed",
+                "Failed to connect to remote service",
+                {cgw_sec::slog::f_str("someip_service_id", cgw_sec::hex_id(service)),
+                 cgw_sec::slog::f_str("someip_instance_id", cgw_sec::hex_id(instance))});
             return;
         }
         
@@ -1608,8 +1669,11 @@ private:
         // 通知服务可用
         ServiceRegistry::get_instance().register_service(service, instance);
         
-        std::cout << "Connected to remote service 0x" << std::hex << service 
-                  << " instance 0x" << instance << " on port " << std::dec << config.tcp_port << std::endl;
+        cgw_sec::SecLogAdapter::facade().info("sec.network.connected_remote",
+            "Connected to remote service",
+            {cgw_sec::slog::f_str("someip_service_id", cgw_sec::hex_id(service)),
+             cgw_sec::slog::f_str("someip_instance_id", cgw_sec::hex_id(instance)),
+             cgw_sec::slog::f_int("someip_port", config.tcp_port)});
     }
     
     bool send_via_network(const std::shared_ptr<Message>& message) {

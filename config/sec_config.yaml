@@ -1,4 +1,41 @@
+# CGW-SEC 服务配置
+# 安全服务参数
 se_hsm_type: "software"
 default_security_level: 1
 seed_expiration_ms: 30000
 max_seed_pool_size: 100
+
+# 统一日志配置（CGW-SEC-DSN-CR-004 / CGW-FW-SPEC设计 §4）
+common:
+  log:
+    schema_version: 1
+    level: INFO
+    strict: false
+    async:
+      enabled: true
+      queue_size: 4096
+      flush_interval_ms: 1000
+    console:
+      enabled: true
+    file:
+      enabled: false
+      root: /var/log/cgw
+      max_file_size_mb: 20
+      max_files: 5
+      total_budget_mb: 100
+    redact:
+      identifiers: mask
+      payload_max_bytes: 256
+    format: standard
+
+sec:
+  # 日志服务级覆盖（CGW-SEC-DSN-CR-004 §启动与模块 Logger）
+  log:
+    level: INFO
+    modules:
+      facade: INFO
+      seed_key: INFO
+      ota_session: INFO
+      root_store: INFO
+      device_key: INFO
+      se_adapter: INFO

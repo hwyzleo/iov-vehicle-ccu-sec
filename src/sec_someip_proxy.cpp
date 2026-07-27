@@ -1,5 +1,5 @@
 #include "sec_someip_proxy.h"
-#include <iostream>
+#include "sec_log_adapter.h"
 #include <stdexcept>
 
 namespace cgw_sec {
@@ -14,15 +14,18 @@ SecSomeipProxy::~SecSomeipProxy() {
 
 bool SecSomeipProxy::initialize() {
     if (!client_) {
-        std::cerr << "[ERROR] SecSomeipProxy: Client not initialized" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.client_not_initialized",
+            "Client not initialized");
         return false;
     }
     
     bool result = client_->initialize();
     if (result) {
-        std::cout << "[INFO] SecSomeipProxy: Initialized successfully" << std::endl;
+        SecLogAdapter::facade().info("sec.proxy.initialized",
+            "Initialized successfully");
     } else {
-        std::cerr << "[ERROR] SecSomeipProxy: Failed to initialize" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.init_failed",
+            "Failed to initialize");
     }
     
     return result;
@@ -40,7 +43,9 @@ bool SecSomeipProxy::isConnected() const {
 
 SeedResult SecSomeipProxy::getSeed(uint8_t level) {
     if (!client_ || !client_->isConnected()) {
-        std::cerr << "[ERROR] SecSomeipProxy: getSeed failed - not connected" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.not_connected",
+            "getSeed failed - not connected",
+            {slog::f_str("operation", "getSeed")});
         throw std::runtime_error("SOME/IP proxy not implemented - use SecSomeipService directly");
     }
     
@@ -50,7 +55,9 @@ SeedResult SecSomeipProxy::getSeed(uint8_t level) {
 CgwSecErrorCode SecSomeipProxy::verifyKey(uint8_t level, uint32_t seedId,
                                             const std::vector<uint8_t>& key) {
     if (!client_ || !client_->isConnected()) {
-        std::cerr << "[ERROR] SecSomeipProxy: verifyKey failed - not connected" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.not_connected",
+            "verifyKey failed - not connected",
+            {slog::f_str("operation", "verifyKey")});
         throw std::runtime_error("SOME/IP proxy not implemented - use SecSomeipService directly");
     }
     
@@ -60,7 +67,9 @@ CgwSecErrorCode SecSomeipProxy::verifyKey(uint8_t level, uint32_t seedId,
 OtaSessionResult SecSomeipProxy::deriveOtaSession(const OtaSessionContext& context,
                                                     uint8_t level) {
     if (!client_ || !client_->isConnected()) {
-        std::cerr << "[ERROR] SecSomeipProxy: deriveOtaSession failed - not connected" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.not_connected",
+            "deriveOtaSession failed - not connected",
+            {slog::f_str("operation", "deriveOtaSession")});
         throw std::runtime_error("SOME/IP proxy not implemented - use SecSomeipService directly");
     }
     
@@ -71,7 +80,9 @@ KeyResult SecSomeipProxy::deriveByUid(const std::string& subKeyName,
                                        const std::vector<uint8_t>& context,
                                        uint8_t level) {
     if (!client_ || !client_->isConnected()) {
-        std::cerr << "[ERROR] SecSomeipProxy: deriveByUid failed - not connected" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.not_connected",
+            "deriveByUid failed - not connected",
+            {slog::f_str("operation", "deriveByUid")});
         throw std::runtime_error("SOME/IP proxy not implemented - use SecSomeipService directly");
     }
     
@@ -81,7 +92,9 @@ KeyResult SecSomeipProxy::deriveByUid(const std::string& subKeyName,
 SecureDataResult SecSomeipProxy::wrapByUid(const std::vector<uint8_t>& data,
                                             uint8_t level) {
     if (!client_ || !client_->isConnected()) {
-        std::cerr << "[ERROR] SecSomeipProxy: wrapByUid failed - not connected" << std::endl;
+        SecLogAdapter::facade().error("sec.proxy.not_connected",
+            "wrapByUid failed - not connected",
+            {slog::f_str("operation", "wrapByUid")});
         throw std::runtime_error("SOME/IP proxy not implemented - use SecSomeipService directly");
     }
     

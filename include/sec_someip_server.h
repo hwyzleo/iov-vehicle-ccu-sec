@@ -9,6 +9,8 @@
 #include "data_models.h"
 #include "error_codes.h"
 #include "sec_someip_service.h"
+#include "sec_log_adapter.h"
+#include "sec_log_context.h"
 
 // 根据编译选项选择 SOME/IP 实现
 #ifdef USE_MOCK_SOMEIP
@@ -86,11 +88,6 @@ private:
     OtaSessionContext deserializeOtaSessionContext(const std::vector<uint8_t>& data);
     std::pair<std::string, std::vector<uint8_t>> deserializeKeyRequest(const std::vector<uint8_t>& data);
     std::pair<std::string, std::vector<uint8_t>> deserializeWrapRequest(const std::vector<uint8_t>& data);
-    
-    // 日志
-    void logInfo(const std::string& message);
-    void logError(const std::string& message);
-    void logWarning(const std::string& message);
 };
 
 } // namespace cgw_sec

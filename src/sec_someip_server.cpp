@@ -2,6 +2,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
+#include <chrono>
 #include <nlohmann/json.hpp>
 
 namespace cgw_sec {
@@ -32,7 +33,8 @@ void SecSomeipServer::initializeApplication() {
     // 初始化应用程序
     application_->init();
     
-    logInfo("vsomeip application initialized");
+    SecLogAdapter::facade().info("sec.service.app_initialized",
+        "vsomeip application initialized");
 }
 
 void SecSomeipServer::registerMethodHandlers() {
@@ -71,7 +73,8 @@ void SecSomeipServer::registerMethodHandlers() {
             handleWrapByUid(req, resp);
         };
     
-    logInfo("Method handlers registered");
+    SecLogAdapter::facade().info("sec.service.handlers_registered",
+        "Method handlers registered");
 }
 
 void SecSomeipServer::registerService() {
@@ -93,31 +96,35 @@ void SecSomeipServer::registerService() {
     }
     
     serviceAvailable_ = true;
-    {
-        std::ostringstream oss;
-        oss << "Service registered: serviceId=0x" << std::hex << config_.serviceId
-            << ", instanceId=0x" << std::hex << config_.instanceId;
-        logInfo(oss.str());
-    }
+    SecLogAdapter::facade().info("sec.service.registered",
+        "Service registered",
+        {slog::f_str("someip_service_id", hex_id(config_.serviceId)),
+         slog::f_str("someip_instance_id", hex_id(config_.instanceId))});
 }
 
 void SecSomeipServer::unregisterService() {
     if (application_) {
         application_->stop_offer_service(config_.serviceId, config_.instanceId);
         serviceAvailable_ = false;
-        logInfo("Service unregistered");
+        SecLogAdapter::facade().info("sec.service.unregistered",
+            "Service unregistered");
     }
 }
 
 bool SecSomeipServer::start() {
     if (running_) {
-        logWarning("Server already running");
+        SecLogAdapter::facade().warn("sec.service.already_running",
+            "Server already running");
         return true;
     }
     
     // 验证配置
     if (config_.serviceId == 0 || config_.instanceId == 0) {
-        logError("Invalid configuration: serviceId and instanceId must be non-zero");
+        SecLogAdapter::facade().error("sec.service.config_invalid",
+            "Invalid configuration: serviceId and instanceId must be non-zero",
+            {slog::f_str("someip_service_id", hex_id(config_.serviceId)),
+             slog::f_str("someip_instance_id", hex_id(config_.instanceId)),
+             slog::f_str("error_code", "CGW-FW-0201")});
         return false;
     }
     
@@ -134,16 +141,16 @@ bool SecSomeipServer::start() {
             application_->start();
         });
         
-        {
-            std::ostringstream oss;
-            oss << "SOME/IP server started: serviceId=0x" << std::hex << config_.serviceId
-                << ", instanceId=0x" << std::hex << config_.instanceId;
-            logInfo(oss.str());
-        }
+        SecLogAdapter::facade().info("sec.service.server_started",
+            "SOME/IP server started",
+            {slog::f_str("someip_service_id", hex_id(config_.serviceId)),
+             slog::f_str("someip_instance_id", hex_id(config_.instanceId))});
         return true;
         
     } catch (const std::exception& e) {
-        logError("Failed to start server: " + std::string(e.what()));
+        SecLogAdapter::facade().error("sec.service.start_failed",
+            "Failed to start server",
+            {slog::f_str("reason", e.what())});
         running_ = false;
         return false;
     }
@@ -169,7 +176,8 @@ void SecSomeipServer::stop() {
         routingThread_.join();
     }
     
-    logInfo("SOME/IP server stopped");
+    SecLogAdapter::facade().info("sec.service.server_stopped",
+        "SOME/IP server stopped");
 }
 
 bool SecSomeipServer::isRunning() const {
@@ -180,11 +188,26 @@ bool SecSomeipServer::isServiceAvailable() const {
     return serviceAvailable_;
 }
 
+// ============================================================
 // 方法处理函数实现
+// 每个 handler 建立 ContextScope（CGW-SEC-DSN-CR-004 §上下文传播），
+// 输出事件目录中的结构化事件（CGW-SEC-DSN-CR-004 §事件目录），
+// 仅记录非密钥元数据（CGW-SEC-DSN-CR-004 §字段白名单与零泄露）。
+// ============================================================
+
 void SecSomeipServer::handleGetSeed(
     const std::shared_ptr<someip::Message>& request,
     std::shared_ptr<someip::Message>& response) {
     
+    auto startTime = std::chrono::steady_clock::now();
+
+    // 建立 SOME/IP 入站 ContextScope
+    // （CGW-SEC-DSN-CR-004 §上下文传播 第1点：Provider 收到请求时建立 ContextScope）
+    auto scope = make_someip_context_scope(
+        generate_trace_id(), generate_request_id(),
+        hex_id(config_.serviceId), hex_id(config_.getSeedMethodId),
+        hex_id(static_cast<uint16_t>(request->get_client())));
+
     try {
         // 从请求中提取 level 参数
         auto payload = request->get_payload();
@@ -192,7 +215,16 @@ void SecSomeipServer::handleGetSeed(
         auto length = payload->get_length();
         
         if (length < 1) {
-            logError("Invalid getSeed request: missing level parameter");
+            // sec.request.unauthorized: 调用方或安全会话未授权
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+            SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
+                "Invalid getSeed request: missing level parameter",
+                {slog::f_str("caller", "unknown"),
+                 slog::f_str("operation", "getSeed"),
+                 slog::f_str("result", "invalid_request"),
+                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
             errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
@@ -201,19 +233,53 @@ void SecSomeipServer::handleGetSeed(
         
         uint8_t level = data[0];
         
-        // 调用业务逻辑
-        auto result = service_->getSeed(level);
+        // 调用业务逻辑（创建 SE/HSM 子作用域）
+        SeedResult result;
+        {
+            auto seScope = make_se_child_scope("getSeed");
+            result = service_->getSeed(level);
+        }
+
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
         
         // 序列化结果
         auto responsePayload = runtime_->create_payload();
         responsePayload->set_data(serializeSeedResult(result));
         response->set_payload(responsePayload);
         
-        logInfo("getSeed completed: level=" + std::to_string(level) + 
-                ", seedId=" + std::to_string(result.seedId));
+        if (result.error == CgwSecErrorCode::SUCCESS) {
+            // sec.seed.generated: getSeed 成功
+            // 仅记录非密钥元数据，不记录 seed 内容
+            SecLogAdapter::seed_key().info(sec_events::SEED_GENERATED,
+                "getSeed succeeded",
+                {slog::f_str("caller", "diag"),
+                 slog::f_str("security_level", hex_id(level)),
+                 slog::f_str("operation", "getSeed"),
+                 slog::f_str("result", "success"),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_int("seed_id", static_cast<int64_t>(result.seedId))});
+        } else {
+            // sec.seed.generate.failed: seed 生成失败
+            SecLogAdapter::seed_key().error(sec_events::SEED_GENERATE_FAILED,
+                "getSeed failed",
+                {slog::f_str("caller", "diag"),
+                 slog::f_str("security_level", hex_id(level)),
+                 slog::f_str("result", errorCodeToString(result.error)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_str("error_code", errorCodeToString(result.error))});
+        }
         
     } catch (const std::exception& e) {
-        logError("getSeed failed: " + std::string(e.what()));
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
+        // sec.seed.generate.failed: seed 生成失败（异常）
+        SecLogAdapter::seed_key().error(sec_events::SEED_GENERATE_FAILED,
+            "getSeed failed",
+            {slog::f_str("caller", "diag"),
+             slog::f_str("result", "exception"),
+             slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::SEED_GENERATION_FAILED))});
         auto errorPayload = runtime_->create_payload();
         errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::SEED_GENERATION_FAILED));
         response->set_payload(errorPayload);
@@ -224,6 +290,13 @@ void SecSomeipServer::handleVerifyKey(
     const std::shared_ptr<someip::Message>& request,
     std::shared_ptr<someip::Message>& response) {
     
+    auto startTime = std::chrono::steady_clock::now();
+
+    auto scope = make_someip_context_scope(
+        generate_trace_id(), generate_request_id(),
+        hex_id(config_.serviceId), hex_id(config_.verifyKeyMethodId),
+        hex_id(static_cast<uint16_t>(request->get_client())));
+
     try {
         auto payload = request->get_payload();
         auto data = payload->get_data();
@@ -231,7 +304,15 @@ void SecSomeipServer::handleVerifyKey(
         
         // 验证请求长度: level(1) + seedId(4) + keyLength(4) + key(16)
         if (length < 9) {
-            logError("Invalid verifyKey request: insufficient data");
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+            SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
+                "Invalid verifyKey request: insufficient data",
+                {slog::f_str("caller", "unknown"),
+                 slog::f_str("operation", "verifyKey"),
+                 slog::f_str("result", "invalid_request"),
+                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
             errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
@@ -243,7 +324,15 @@ void SecSomeipServer::handleVerifyKey(
         uint32_t keyLength = (data[5] << 24) | (data[6] << 16) | (data[7] << 8) | data[8];
         
         if (length < 9 + keyLength) {
-            logError("Invalid verifyKey request: key length mismatch");
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+            SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
+                "Invalid verifyKey request: key length mismatch",
+                {slog::f_str("caller", "unknown"),
+                 slog::f_str("operation", "verifyKey"),
+                 slog::f_str("result", "invalid_request"),
+                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
             errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
@@ -252,20 +341,53 @@ void SecSomeipServer::handleVerifyKey(
         
         std::vector<uint8_t> key(data + 9, data + 9 + keyLength);
         
-        // 调用业务逻辑
-        auto result = service_->verifyKey(level, seedId, key);
+        // 调用业务逻辑（创建 SE/HSM 子作用域）
+        CgwSecErrorCode result;
+        {
+            auto seScope = make_se_child_scope("verifyKey");
+            result = service_->verifyKey(level, seedId, key);
+        }
+
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
         
         // 序列化结果
         auto responsePayload = runtime_->create_payload();
         responsePayload->set_data(serializeErrorCode(result));
         response->set_payload(responsePayload);
         
-        logInfo("verifyKey completed: level=" + std::to_string(level) + 
-                ", seedId=" + std::to_string(seedId) + 
-                ", result=" + (result == CgwSecErrorCode::SUCCESS ? "SUCCESS" : "FAILED"));
+        // sec.key.verify.succeeded/failed: verifyKey 完成
+        // 仅记录非密钥元数据，不记录 key 内容
+        if (result == CgwSecErrorCode::SUCCESS) {
+            SecLogAdapter::seed_key().info(sec_events::KEY_VERIFY_SUCCEEDED,
+                "verifyKey succeeded",
+                {slog::f_str("caller", "diag"),
+                 slog::f_str("security_level", hex_id(level)),
+                 slog::f_str("operation", "verifyKey"),
+                 slog::f_str("result", "success"),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_int("seed_id", static_cast<int64_t>(seedId))});
+        } else {
+            SecLogAdapter::seed_key().warn(sec_events::KEY_VERIFY_FAILED,
+                "verifyKey failed",
+                {slog::f_str("caller", "diag"),
+                 slog::f_str("security_level", hex_id(level)),
+                 slog::f_str("operation", "verifyKey"),
+                 slog::f_str("result", errorCodeToString(result)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_str("error_code", errorCodeToString(result))});
+        }
         
     } catch (const std::exception& e) {
-        logError("verifyKey failed: " + std::string(e.what()));
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
+        SecLogAdapter::seed_key().error(sec_events::KEY_VERIFY_FAILED,
+            "verifyKey failed",
+            {slog::f_str("caller", "diag"),
+             slog::f_str("operation", "verifyKey"),
+             slog::f_str("result", "exception"),
+             slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::KEY_VERIFICATION_FAILED))});
         auto errorPayload = runtime_->create_payload();
         errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::KEY_VERIFICATION_FAILED));
         response->set_payload(errorPayload);
@@ -276,13 +398,28 @@ void SecSomeipServer::handleDeriveOtaSession(
     const std::shared_ptr<someip::Message>& request,
     std::shared_ptr<someip::Message>& response) {
     
+    auto startTime = std::chrono::steady_clock::now();
+
+    auto scope = make_someip_context_scope(
+        generate_trace_id(), generate_request_id(),
+        hex_id(config_.serviceId), hex_id(config_.deriveOtaSessionMethodId),
+        hex_id(static_cast<uint16_t>(request->get_client())));
+
     try {
         auto payload = request->get_payload();
         auto data = payload->get_data();
         auto length = payload->get_length();
         
         if (length < 1) {
-            logError("Invalid deriveOtaSession request: missing level parameter");
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+            SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
+                "Invalid deriveOtaSession request: missing level parameter",
+                {slog::f_str("caller", "unknown"),
+                 slog::f_str("operation", "deriveOtaSession"),
+                 slog::f_str("result", "invalid_request"),
+                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
             errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
@@ -295,18 +432,52 @@ void SecSomeipServer::handleDeriveOtaSession(
         std::vector<uint8_t> contextData(data + 1, data + length);
         auto context = deserializeOtaSessionContext(contextData);
         
-        // 调用业务逻辑
-        auto result = service_->deriveOtaSession(context, level);
+        // 调用业务逻辑（创建 SE/HSM 子作用域）
+        OtaSessionResult result;
+        {
+            auto seScope = make_se_child_scope("deriveOtaSession");
+            result = service_->deriveOtaSession(context, level);
+        }
+
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
         
         // 序列化结果
         auto responsePayload = runtime_->create_payload();
         responsePayload->set_data(serializeOtaSessionResult(result));
         response->set_payload(responsePayload);
         
-        logInfo("deriveOtaSession completed: campaignId=" + context.campaignId);
+        // sec.ota.session.derived/derive.failed: OTA 会话派生
+        // 仅记录非密钥元数据，不记录 session_key、nonce 原值
+        if (result.error == CgwSecErrorCode::SUCCESS) {
+            SecLogAdapter::ota_session().info(sec_events::OTA_SESSION_DERIVED,
+                "OTA session derived",
+                {slog::f_str("caller", "fota"),
+                 slog::f_str("operation", "deriveOtaSession"),
+                 slog::f_str("direction", context.direction),
+                 slog::f_str("result", "success"),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
+        } else {
+            SecLogAdapter::ota_session().error(sec_events::OTA_SESSION_DERIVE_FAILED,
+                "OTA session derivation failed",
+                {slog::f_str("caller", "fota"),
+                 slog::f_str("operation", "deriveOtaSession"),
+                 slog::f_str("direction", context.direction),
+                 slog::f_str("result", errorCodeToString(result.error)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_str("error_code", errorCodeToString(result.error))});
+        }
         
     } catch (const std::exception& e) {
-        logError("deriveOtaSession failed: " + std::string(e.what()));
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
+        SecLogAdapter::ota_session().error(sec_events::OTA_SESSION_DERIVE_FAILED,
+            "OTA session derivation failed",
+            {slog::f_str("caller", "fota"),
+             slog::f_str("operation", "deriveOtaSession"),
+             slog::f_str("result", "exception"),
+             slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED))});
         auto errorPayload = runtime_->create_payload();
         errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED));
         response->set_payload(errorPayload);
@@ -317,13 +488,28 @@ void SecSomeipServer::handleDeriveByUid(
     const std::shared_ptr<someip::Message>& request,
     std::shared_ptr<someip::Message>& response) {
     
+    auto startTime = std::chrono::steady_clock::now();
+
+    auto scope = make_someip_context_scope(
+        generate_trace_id(), generate_request_id(),
+        hex_id(config_.serviceId), hex_id(config_.deriveByUidMethodId),
+        hex_id(static_cast<uint16_t>(request->get_client())));
+
     try {
         auto payload = request->get_payload();
         auto data = payload->get_data();
         auto length = payload->get_length();
         
         if (length < 1) {
-            logError("Invalid deriveByUid request: missing level parameter");
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+            SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
+                "Invalid deriveByUid request: missing level parameter",
+                {slog::f_str("caller", "unknown"),
+                 slog::f_str("operation", "deriveByUid"),
+                 slog::f_str("result", "invalid_request"),
+                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
             errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
@@ -336,18 +522,50 @@ void SecSomeipServer::handleDeriveByUid(
         std::vector<uint8_t> requestData(data + 1, data + length);
         auto [subKeyName, context] = deserializeKeyRequest(requestData);
         
-        // 调用业务逻辑
-        auto result = service_->deriveByUid(subKeyName, context, level);
+        // 调用业务逻辑（创建 SE/HSM 子作用域）
+        KeyResult result;
+        {
+            auto seScope = make_se_child_scope("deriveByUid");
+            result = service_->deriveByUid(subKeyName, context, level);
+        }
+
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
         
         // 序列化结果
         auto responsePayload = runtime_->create_payload();
         responsePayload->set_data(serializeKeyResult(result));
         response->set_payload(responsePayload);
         
-        logInfo("deriveByUid completed: subKeyName=" + subKeyName);
+        // sec.device.key.operation.failed: 设备根缺失或派生失败
+        // 仅记录非密钥元数据，不记录 key 内容
+        if (result.error == CgwSecErrorCode::SUCCESS) {
+            SecLogAdapter::device_key().info("sec.device.key.derived",
+                "deriveByUid succeeded",
+                {slog::f_str("caller", "device"),
+                 slog::f_str("operation", "deriveByUid"),
+                 slog::f_str("result", "success"),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
+        } else {
+            SecLogAdapter::device_key().error(sec_events::DEVICE_KEY_OPERATION_FAILED,
+                "deriveByUid failed",
+                {slog::f_str("caller", "device"),
+                 slog::f_str("operation", "deriveByUid"),
+                 slog::f_str("result", errorCodeToString(result.error)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_str("error_code", errorCodeToString(result.error))});
+        }
         
     } catch (const std::exception& e) {
-        logError("deriveByUid failed: " + std::string(e.what()));
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
+        SecLogAdapter::device_key().error(sec_events::DEVICE_KEY_OPERATION_FAILED,
+            "deriveByUid failed",
+            {slog::f_str("caller", "device"),
+             slog::f_str("operation", "deriveByUid"),
+             slog::f_str("result", "exception"),
+             slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::DEVICE_ROOT_MISSING))});
         auto errorPayload = runtime_->create_payload();
         errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::DEVICE_ROOT_MISSING));
         response->set_payload(errorPayload);
@@ -358,13 +576,28 @@ void SecSomeipServer::handleWrapByUid(
     const std::shared_ptr<someip::Message>& request,
     std::shared_ptr<someip::Message>& response) {
     
+    auto startTime = std::chrono::steady_clock::now();
+
+    auto scope = make_someip_context_scope(
+        generate_trace_id(), generate_request_id(),
+        hex_id(config_.serviceId), hex_id(config_.wrapByUidMethodId),
+        hex_id(static_cast<uint16_t>(request->get_client())));
+
     try {
         auto payload = request->get_payload();
         auto data = payload->get_data();
         auto length = payload->get_length();
         
         if (length < 1) {
-            logError("Invalid wrapByUid request: missing level parameter");
+            auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - startTime).count();
+            SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
+                "Invalid wrapByUid request: missing level parameter",
+                {slog::f_str("caller", "unknown"),
+                 slog::f_str("operation", "wrapByUid"),
+                 slog::f_str("result", "invalid_request"),
+                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
             errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
@@ -377,18 +610,49 @@ void SecSomeipServer::handleWrapByUid(
         std::vector<uint8_t> requestData(data + 1, data + length);
         auto [keyName, dataToWrap] = deserializeWrapRequest(requestData);
         
-        // 调用业务逻辑
-        auto result = service_->wrapByUid(dataToWrap, level);
+        // 调用业务逻辑（创建 SE/HSM 子作用域）
+        SecureDataResult result;
+        {
+            auto seScope = make_se_child_scope("wrapByUid");
+            result = service_->wrapByUid(dataToWrap, level);
+        }
+
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
         
         // 序列化结果
         auto responsePayload = runtime_->create_payload();
         responsePayload->set_data(serializeSecureDataResult(result));
         response->set_payload(responsePayload);
         
-        logInfo("wrapByUid completed");
+        // 仅记录非密钥元数据，不记录 wrapped data 内容
+        if (result.error == CgwSecErrorCode::SUCCESS) {
+            SecLogAdapter::device_key().info("sec.device.key.wrapped",
+                "wrapByUid succeeded",
+                {slog::f_str("caller", "device"),
+                 slog::f_str("operation", "wrapByUid"),
+                 slog::f_str("result", "success"),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
+        } else {
+            SecLogAdapter::device_key().error(sec_events::DEVICE_KEY_OPERATION_FAILED,
+                "wrapByUid failed",
+                {slog::f_str("caller", "device"),
+                 slog::f_str("operation", "wrapByUid"),
+                 slog::f_str("result", errorCodeToString(result.error)),
+                 slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+                 slog::f_str("error_code", errorCodeToString(result.error))});
+        }
         
     } catch (const std::exception& e) {
-        logError("wrapByUid failed: " + std::string(e.what()));
+        auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+            std::chrono::steady_clock::now() - startTime).count();
+        SecLogAdapter::device_key().error(sec_events::DEVICE_KEY_OPERATION_FAILED,
+            "wrapByUid failed",
+            {slog::f_str("caller", "device"),
+             slog::f_str("operation", "wrapByUid"),
+             slog::f_str("result", "exception"),
+             slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
+             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::DEVICE_ROOT_MISSING))});
         auto errorPayload = runtime_->create_payload();
         errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::DEVICE_ROOT_MISSING));
         response->set_payload(errorPayload);
@@ -696,19 +960,6 @@ std::pair<std::string, std::vector<uint8_t>> SecSomeipServer::deserializeWrapReq
     std::vector<uint8_t> dataToWrap(data.begin() + offset, data.begin() + offset + dataLength);
     
     return {keyName, dataToWrap};
-}
-
-// 日志函数实现
-void SecSomeipServer::logInfo(const std::string& message) {
-    std::cout << "[INFO] SecSomeipServer: " << message << std::endl;
-}
-
-void SecSomeipServer::logError(const std::string& message) {
-    std::cerr << "[ERROR] SecSomeipServer: " << message << std::endl;
-}
-
-void SecSomeipServer::logWarning(const std::string& message) {
-    std::cout << "[WARN] SecSomeipServer: " << message << std::endl;
 }
 
 } // namespace cgw_sec

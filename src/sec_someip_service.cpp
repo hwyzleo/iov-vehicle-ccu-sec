@@ -1,8 +1,10 @@
 #include "sec_someip_service.h"
 #include "se_hsm_factory.h"
+#include "sec_log_adapter.h"
+#include "sec_log_context.h"
 #include "constants.h"
-#include <iostream>
 #include <vector>
+#include <chrono>
 
 namespace cgw_sec {
 
@@ -19,7 +21,8 @@ void SecSomeipService::start() {
         return;
     }
     running_ = true;
-    std::cout << "CGW-SEC SOME/IP service started" << std::endl;
+    SecLogAdapter::facade().info("sec.service.serving",
+        "CGW-SEC SOME/IP service started");
 }
 
 void SecSomeipService::stop() {
@@ -27,7 +30,8 @@ void SecSomeipService::stop() {
         return;
     }
     running_ = false;
-    std::cout << "CGW-SEC SOME/IP service stopped" << std::endl;
+    SecLogAdapter::facade().info("sec.service.stopped_serving",
+        "CGW-SEC SOME/IP service stopped");
 }
 
 SeedResult SecSomeipService::getSeed(uint8_t level) {

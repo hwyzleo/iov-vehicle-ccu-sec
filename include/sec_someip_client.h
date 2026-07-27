@@ -75,11 +75,6 @@ private:
     
     // 发送请求并等待响应
     std::vector<uint8_t> sendRequest(uint16_t methodId, const std::vector<uint8_t>& payload);
-    
-    // 日志
-    void logInfo(const std::string& message);
-    void logError(const std::string& message);
-    void logWarning(const std::string& message);
 };
 
 } // namespace cgw_sec

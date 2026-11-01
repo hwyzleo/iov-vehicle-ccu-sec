@@ -5,7 +5,7 @@
 #include <mutex>
 #include <chrono>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 class SoftwareSeHsm : public SeHsmInterface {
 public:
@@ -14,21 +14,21 @@ public:
 
     SeedResult generateSeed(uint8_t level) override;
 
-    CgwSecErrorCode verifyKey(uint8_t level, uint32_t seedId,
+    CcuSecErrorCode verifyKey(uint8_t level, uint32_t seedId,
                                const std::vector<uint8_t>& key,
                                const std::vector<uint8_t>& expectedSeed) override;
 
     KeyResult deriveKey(const std::string& rootKeyName,
                         const std::vector<uint8_t>& context) override;
 
-    CgwSecErrorCode storeKey(const std::string& keyName,
+    CcuSecErrorCode storeKey(const std::string& keyName,
                               const std::vector<uint8_t>& keyMaterial) override;
 
     KeyResult loadKey(const std::string& keyName) override;
 
     bool hasKey(const std::string& keyName) override;
 
-    CgwSecErrorCode secureStore(const std::vector<uint8_t>& key,
+    CcuSecErrorCode secureStore(const std::vector<uint8_t>& key,
                                  const std::vector<uint8_t>& data) override;
 
     SecureDataResult secureLoad(const std::vector<uint8_t>& key) override;
@@ -54,4 +54,4 @@ private:
                                             const std::vector<uint8_t>& context);
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

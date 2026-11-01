@@ -2,13 +2,13 @@
 #include "constants.h"
 #include <algorithm>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 DeviceRootManager::DeviceRootManager(std::shared_ptr<SeHsmInterface> hsm)
     : hsm_(std::move(hsm)) {}
 
 bool DeviceRootManager::isDeviceRootAvailable() const {
-    return hsm_->hasKey(CGW_DEVICE_ROOT_KEY_NAME);
+    return hsm_->hasKey(CCU_DEVICE_ROOT_KEY_NAME);
 }
 
 KeyResult DeviceRootManager::deriveSubKey(const std::string& subKeyName,
@@ -17,20 +17,20 @@ KeyResult DeviceRootManager::deriveSubKey(const std::string& subKeyName,
 
     KeyResult result;
 
-    if (!hsm_->hasKey(CGW_DEVICE_ROOT_KEY_NAME)) {
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+    if (!hsm_->hasKey(CCU_DEVICE_ROOT_KEY_NAME)) {
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
 
-    auto keyResult = hsm_->deriveKey(CGW_DEVICE_ROOT_KEY_NAME, context);
-    if (keyResult.error != CgwSecErrorCode::SUCCESS) {
+    auto keyResult = hsm_->deriveKey(CCU_DEVICE_ROOT_KEY_NAME, context);
+    if (keyResult.error != CcuSecErrorCode::SUCCESS) {
         result.error = keyResult.error;
         return result;
     }
 
     derivedKeys_[subKeyName] = keyResult.key;
     result.key = keyResult.key;
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
 
     return result;
 }
@@ -40,25 +40,25 @@ SecureDataResult DeviceRootManager::wrapData(const std::vector<uint8_t>& data) {
 
     SecureDataResult result;
 
-    if (!hsm_->hasKey(CGW_DEVICE_ROOT_KEY_NAME)) {
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+    if (!hsm_->hasKey(CCU_DEVICE_ROOT_KEY_NAME)) {
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
 
-    auto keyResult = hsm_->loadKey(CGW_DEVICE_ROOT_KEY_NAME);
-    if (keyResult.error != CgwSecErrorCode::SUCCESS) {
+    auto keyResult = hsm_->loadKey(CCU_DEVICE_ROOT_KEY_NAME);
+    if (keyResult.error != CcuSecErrorCode::SUCCESS) {
         result.error = keyResult.error;
         return result;
     }
 
     auto storeResult = hsm_->secureStore(keyResult.key, data);
-    if (storeResult != CgwSecErrorCode::SUCCESS) {
+    if (storeResult != CcuSecErrorCode::SUCCESS) {
         result.error = storeResult;
         return result;
     }
 
     result.data = data;
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
 
     return result;
 }
@@ -68,27 +68,27 @@ SecureDataResult DeviceRootManager::unwrapData(const std::vector<uint8_t>& wrapp
 
     SecureDataResult result;
 
-    if (!hsm_->hasKey(CGW_DEVICE_ROOT_KEY_NAME)) {
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+    if (!hsm_->hasKey(CCU_DEVICE_ROOT_KEY_NAME)) {
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
 
-    auto keyResult = hsm_->loadKey(CGW_DEVICE_ROOT_KEY_NAME);
-    if (keyResult.error != CgwSecErrorCode::SUCCESS) {
+    auto keyResult = hsm_->loadKey(CCU_DEVICE_ROOT_KEY_NAME);
+    if (keyResult.error != CcuSecErrorCode::SUCCESS) {
         result.error = keyResult.error;
         return result;
     }
 
     auto loadResult = hsm_->secureLoad(keyResult.key);
-    if (loadResult.error != CgwSecErrorCode::SUCCESS) {
+    if (loadResult.error != CcuSecErrorCode::SUCCESS) {
         result.error = loadResult.error;
         return result;
     }
 
     result.data = loadResult.data;
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
 
     return result;
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

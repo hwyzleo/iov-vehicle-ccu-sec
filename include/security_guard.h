@@ -8,18 +8,18 @@
 #include "data_models.h"
 #include "error_codes.h"
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 class SecurityGuard {
 public:
     SecurityGuard(std::shared_ptr<SeHsmInterface> hsm);
     ~SecurityGuard() = default;
 
-    CgwSecErrorCode verifyPermission(uint8_t level, const std::string& operation);
+    CcuSecErrorCode verifyPermission(uint8_t level, const std::string& operation);
 
-    CgwSecErrorCode checkSecureSession(uint32_t sessionHandle);
+    CcuSecErrorCode checkSecureSession(uint32_t sessionHandle);
 
-    CgwSecErrorCode authorizeRequest(uint8_t level, const std::string& operation,
+    CcuSecErrorCode authorizeRequest(uint8_t level, const std::string& operation,
                                        uint32_t sessionHandle);
 
     void registerSecureSession(uint32_t sessionHandle);
@@ -34,4 +34,4 @@ private:
     std::map<std::string, uint8_t> operationPermissions_;
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

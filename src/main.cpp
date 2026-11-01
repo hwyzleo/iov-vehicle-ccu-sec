@@ -14,7 +14,7 @@
 #include "mock_someip_network.h"
 #endif
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 static std::atomic<bool> running{true};
 
@@ -29,16 +29,16 @@ int main(int argc, char* argv[]) {
     signal(SIGTERM, signalHandler);
 
     try {
-        // CGW-SEC-DSN-CR-004: 启动顺序
-        // 加载基础配置 -> 读取 common.log.* / sec.log.* -> Logger::init("cgw-sec")
+        // CCU-SEC-DSN-CR-004: 启动顺序
+        // 加载基础配置 -> 读取 common.log.* / sec.log.* -> Logger::init("ccu-sec")
         // -> 创建模块 Logger -> 初始化 SE/HSM / keystore -> 初始化 SOME/IP Provider -> 开放安全接口
 
         // 加载结构化日志配置并初始化 Logger（在创建业务模块之前）
         auto log_config = ConfigLoader::loadLogConfig("config/sec_config.yaml");
-        auto log_result = SecLogAdapter::init("cgw-sec", log_config);
-        if (log_result.error != cgw::fw::log::LogError::kOk) {
+        auto log_result = SecLogAdapter::init("ccu-sec", log_config);
+        if (log_result.error != ccu::fw::log::LogError::kOk) {
             // 严格模式初始化失败时，在开放 SOME/IP 安全接口前终止启动
-            // （CGW-SEC-DSN-CR-004 §实时性与故障降级）
+            // （CCU-SEC-DSN-CR-004 §实时性与故障降级）
             std::cerr << "FATAL: Logger init failed: " << log_result.error_message << std::endl;
             return 1;
         }
@@ -82,9 +82,9 @@ int main(int argc, char* argv[]) {
             serviceEndTime - serviceStartTime).count();
 
         // sec.service.initialized: Logger、SE/HSM 与接口初始化完成
-        // （CGW-SEC-DSN-CR-004 §事件目录）
+        // （CCU-SEC-DSN-CR-004 §事件目录）
         SecLogAdapter::facade().info(sec_events::SERVICE_INITIALIZED,
-            "CGW-SEC service initialized",
+            "CCU-SEC service initialized",
             {slog::f_str("result", "success"),
              slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
              slog::f_str("someip_service_id", hex_id(someipConfig.serviceId)),
@@ -111,10 +111,10 @@ int main(int argc, char* argv[]) {
         service->stop();
 
         SecLogAdapter::facade().info("sec.service.stopped",
-            "CGW-SEC service stopped");
+            "CCU-SEC service stopped");
 
     } catch (const std::exception& e) {
-        std::cerr << "CGW-SEC Service failed: " << e.what() << std::endl;
+        std::cerr << "CCU-SEC Service failed: " << e.what() << std::endl;
         return 1;
     }
 

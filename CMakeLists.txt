@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.10)
-project(CgwSecService)
+project(CcuSecService)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -48,9 +48,9 @@ endif ()
 find_package(yaml-cpp REQUIRED)
 include_directories(${YAML_CPP_INCLUDE_DIRS})
 
-# CGW Framework (provides cgw-framework-log: Logger, ContextScope, structured fields)
-# CGW-SEC-DSN-CR-004
-find_package(CGWFramework REQUIRED)
+# CCU Framework (provides ccu-framework-log: Logger, ContextScope, structured fields)
+# CCU-SEC-DSN-CR-004
+find_package(CCUFramework REQUIRED)
 
 find_package(GTest REQUIRED)
 include_directories(${GTEST_INCLUDE_DIRS})
@@ -88,36 +88,36 @@ set(LIB_SOURCES
 
 
 
-# Create cgw_sec library
-add_library(cgw_sec_lib STATIC ${LIB_SOURCES})
-target_include_directories(cgw_sec_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(cgw_sec_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto CGWFramework::cgw-framework)
+# Create ccu_sec library
+add_library(ccu_sec_lib STATIC ${LIB_SOURCES})
+target_include_directories(ccu_sec_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(ccu_sec_lib PUBLIC yaml-cpp::yaml-cpp nlohmann_json::nlohmann_json OpenSSL::SSL OpenSSL::Crypto CCUFramework::ccu-framework-log)
 
 # 根据 SOME/IP 实现添加链接库
 if(USE_MOCK_SOMEIP)
     # mock实现需要socket库
     if(NOT WIN32)
-        target_link_libraries(cgw_sec_lib PUBLIC pthread)
+        target_link_libraries(ccu_sec_lib PUBLIC pthread)
     endif()
 else()
-    target_link_libraries(cgw_sec_lib PUBLIC 
+    target_link_libraries(ccu_sec_lib PUBLIC 
         vsomeip3
         ${Boost_LIBRARIES}
     )
 endif()
 
 # Main application executable
-add_executable(cgw_sec src/main.cpp)
-target_include_directories(cgw_sec PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(cgw_sec PRIVATE cgw_sec_lib)
+add_executable(ccu_sec src/main.cpp)
+target_include_directories(ccu_sec PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(ccu_sec PRIVATE ccu_sec_lib)
 
 # Example executables
 add_executable(simple_client examples/simple_client.cpp)
 target_include_directories(simple_client PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(simple_client PRIVATE cgw_sec_lib)
+target_link_libraries(simple_client PRIVATE ccu_sec_lib)
 
 enable_testing()
-add_executable(CgwSecTests
+add_executable(CcuSecTests
     tests/test_error_codes.cpp
     tests/test_data_models.cpp
     tests/test_config_loader.cpp
@@ -136,22 +136,22 @@ add_executable(CgwSecTests
     tests/test_log_events.cpp
     tests/test_log_integration.cpp
 )
-target_include_directories(CgwSecTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_link_libraries(CgwSecTests PRIVATE cgw_sec_lib GTest::GTest GTest::gmock GTest::Main)
+target_include_directories(CcuSecTests PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_link_libraries(CcuSecTests PRIVATE ccu_sec_lib GTest::GTest GTest::gmock GTest::Main)
 
 # 根据 SOME/IP 实现添加链接库
 if(USE_MOCK_SOMEIP)
     # mock实现需要socket库
     if(NOT WIN32)
-        target_link_libraries(CgwSecTests PRIVATE pthread)
+        target_link_libraries(CcuSecTests PRIVATE pthread)
     endif()
 else()
-    target_link_libraries(CgwSecTests PRIVATE 
+    target_link_libraries(CcuSecTests PRIVATE 
         vsomeip3
         ${Boost_LIBRARIES}
     )
 endif()
-add_test(NAME CgwSecTests COMMAND CgwSecTests)
+add_test(NAME CcuSecTests COMMAND CcuSecTests)
 
 # 为测试提供源目录路径
-target_compile_definitions(CgwSecTests PRIVATE SOURCE_DIR="${PROJECT_SOURCE_DIR}")
+target_compile_definitions(CcuSecTests PRIVATE SOURCE_DIR="${PROJECT_SOURCE_DIR}")

@@ -4,7 +4,7 @@
 #include "config_loader.h"
 #include <string>
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class SecSomeipClientTest : public ::testing::Test {
 protected:
@@ -35,11 +35,11 @@ TEST_F(SecSomeipClientTest, Initialize) {
 TEST_F(SecSomeipClientTest, GetSeedWithoutConnection) {
     // 未连接时调用应该返回错误
     auto result = client_->getSeed(0x01);
-    EXPECT_EQ(result.error, CgwSecErrorCode::UNAUTHORIZED_REQUEST);
+    EXPECT_EQ(result.error, CcuSecErrorCode::UNAUTHORIZED_REQUEST);
 }
 
 TEST_F(SecSomeipClientTest, VerifyKeyWithoutConnection) {
     std::vector<uint8_t> key(16, 0x42);
     auto result = client_->verifyKey(0x01, 1, key);
-    EXPECT_EQ(result, CgwSecErrorCode::UNAUTHORIZED_REQUEST);
+    EXPECT_EQ(result, CcuSecErrorCode::UNAUTHORIZED_REQUEST);
 }

@@ -6,7 +6,7 @@
 #include <vector>
 #include <chrono>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SecSomeipService::SecSomeipService(const SecConfig& secConfig,
                                    const SomeipConfig& someipConfig,
@@ -22,7 +22,7 @@ void SecSomeipService::start() {
     }
     running_ = true;
     SecLogAdapter::facade().info("sec.service.serving",
-        "CGW-SEC SOME/IP service started");
+        "CCU-SEC SOME/IP service started");
 }
 
 void SecSomeipService::stop() {
@@ -31,24 +31,24 @@ void SecSomeipService::stop() {
     }
     running_ = false;
     SecLogAdapter::facade().info("sec.service.stopped_serving",
-        "CGW-SEC SOME/IP service stopped");
+        "CCU-SEC SOME/IP service stopped");
 }
 
 SeedResult SecSomeipService::getSeed(uint8_t level) {
     auto permResult = securityGuard_->verifyPermission(level, "get_seed");
-    if (permResult != CgwSecErrorCode::SUCCESS) {
+    if (permResult != CcuSecErrorCode::SUCCESS) {
         SeedResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     return seedKeyManager_->generateSeed(level);
 }
 
-CgwSecErrorCode SecSomeipService::verifyKey(uint8_t level, uint32_t seedId,
+CcuSecErrorCode SecSomeipService::verifyKey(uint8_t level, uint32_t seedId,
                                              const std::vector<uint8_t>& key) {
     auto permResult = securityGuard_->verifyPermission(level, "verify_key");
-    if (permResult != CgwSecErrorCode::SUCCESS) {
-        return CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+    if (permResult != CcuSecErrorCode::SUCCESS) {
+        return CcuSecErrorCode::UNAUTHORIZED_REQUEST;
     }
     return seedKeyManager_->verifyKey(level, seedId, key);
 }
@@ -56,9 +56,9 @@ CgwSecErrorCode SecSomeipService::verifyKey(uint8_t level, uint32_t seedId,
 OtaSessionResult SecSomeipService::deriveOtaSession(const OtaSessionContext& context,
                                                       uint8_t level) {
     auto permResult = securityGuard_->verifyPermission(level, "derive_ota_session");
-    if (permResult != CgwSecErrorCode::SUCCESS) {
+    if (permResult != CcuSecErrorCode::SUCCESS) {
         OtaSessionResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     return otaSessionManager_->deriveSessionKey(context);
@@ -68,9 +68,9 @@ KeyResult SecSomeipService::deriveByUid(const std::string& subKeyName,
                                          const std::vector<uint8_t>& context,
                                          uint8_t level) {
     auto permResult = securityGuard_->verifyPermission(level, "derive_by_uid");
-    if (permResult != CgwSecErrorCode::SUCCESS) {
+    if (permResult != CcuSecErrorCode::SUCCESS) {
         KeyResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     return deviceRootManager_->deriveSubKey(subKeyName, context);
@@ -79,9 +79,9 @@ KeyResult SecSomeipService::deriveByUid(const std::string& subKeyName,
 SecureDataResult SecSomeipService::wrapByUid(const std::vector<uint8_t>& data,
                                               uint8_t level) {
     auto permResult = securityGuard_->verifyPermission(level, "wrap_by_uid");
-    if (permResult != CgwSecErrorCode::SUCCESS) {
+    if (permResult != CcuSecErrorCode::SUCCESS) {
         SecureDataResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     return deviceRootManager_->wrapData(data);
@@ -101,4 +101,4 @@ void SecSomeipService::initialize() {
     securityGuard_ = std::make_unique<SecurityGuard>(seHsm_);
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

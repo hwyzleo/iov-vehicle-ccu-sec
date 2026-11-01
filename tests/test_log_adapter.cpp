@@ -3,17 +3,17 @@
 #include "sec_log_context.h"
 #include <regex>
 
-namespace cgw_sec {
+namespace ccu_sec {
 namespace {
 
 class SecLogAdapterTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cgw::fw::log::LogConfig config;
-        config.level = cgw::fw::log::LogLevel::kDebug;
+        ccu::fw::log::LogConfig config;
+        config.level = ccu::fw::log::LogLevel::kDebug;
 
-        auto result = SecLogAdapter::init("cgw-sec-test", config);
-        ASSERT_EQ(result.error, cgw::fw::log::LogError::kOk);
+        auto result = SecLogAdapter::init("ccu-sec-test", config);
+        ASSERT_EQ(result.error, ccu::fw::log::LogError::kOk);
     }
 };
 
@@ -27,7 +27,7 @@ TEST_F(SecLogAdapterTest, IsInitializedFlag) {
 }
 
 // ============================================================
-// 模块 Logger 获取（CGW-SEC-DSN-CR-004 §启动与模块 Logger）
+// 模块 Logger 获取（CCU-SEC-DSN-CR-004 §启动与模块 Logger）
 // ============================================================
 TEST_F(SecLogAdapterTest, GetFacadeLogger) {
     auto logger = SecLogAdapter::facade();
@@ -73,15 +73,15 @@ TEST_F(SecLogAdapterTest, FieldTypesWork) {
 }
 
 // ============================================================
-// 敏感度级别验证（CGW-SEC-DSN-CR-004 §字段白名单与零泄露）
+// 敏感度级别验证（CCU-SEC-DSN-CR-004 §字段白名单与零泄露）
 // ============================================================
 TEST_F(SecLogAdapterTest, SensitivityLevelsWork) {
     SecLogAdapter::facade().info("test.event",
         "Test sensitivity levels",
         {slog::f_str("normal_field", "normal"),
-         slog::f_str("identifier_field", "VIN123", cgw::fw::log::Sensitivity::Identifier),
-         slog::f_str("payload_field", "raw_data", cgw::fw::log::Sensitivity::Payload),
-         slog::f_str("secret_field", "secret", cgw::fw::log::Sensitivity::Secret)}
+         slog::f_str("identifier_field", "VIN123", ccu::fw::log::Sensitivity::Identifier),
+         slog::f_str("payload_field", "raw_data", ccu::fw::log::Sensitivity::Payload),
+         slog::f_str("secret_field", "secret", ccu::fw::log::Sensitivity::Secret)}
     );
 }
 
@@ -117,7 +117,7 @@ TEST_F(SecLogAdapterTest, GenerateRequestId) {
 }
 
 // ============================================================
-// 十六进制 ID 格式验证（CGW-FW-SPEC设计 §5.4）
+// 十六进制 ID 格式验证（CCU-FW-SPEC设计 §5.4）
 // ============================================================
 TEST_F(SecLogAdapterTest, HexIdFormatUint16) {
     EXPECT_EQ(hex_id(static_cast<uint16_t>(0x1140)), "0x1140");
@@ -139,4 +139,4 @@ TEST_F(SecLogAdapterTest, FlushWorks) {
 }
 
 } // namespace
-} // namespace cgw_sec
+} // namespace ccu_sec

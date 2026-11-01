@@ -7,7 +7,7 @@
 #include "data_models.h"
 #include "error_codes.h"
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 class DeviceRootManager {
 public:
@@ -30,4 +30,4 @@ private:
     std::map<std::string, std::vector<uint8_t>> derivedKeys_;
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

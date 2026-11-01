@@ -1,7 +1,7 @@
 #include "se_hsm_factory.h"
 #include "software_se_hsm.h"
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 std::unique_ptr<SeHsmInterface> SeHsmFactory::create(const SeHsmConfig& config) {
     if (config.type == "software") {
@@ -12,4 +12,4 @@ std::unique_ptr<SeHsmInterface> SeHsmFactory::create(const SeHsmConfig& config) 
     return nullptr;
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

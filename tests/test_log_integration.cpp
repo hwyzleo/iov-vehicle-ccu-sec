@@ -8,22 +8,22 @@
 #include <atomic>
 #include <vector>
 
-namespace cgw_sec {
+namespace ccu_sec {
 namespace {
 
 class LogIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cgw::fw::log::LogConfig config;
-        config.level = cgw::fw::log::LogLevel::kDebug;
+        ccu::fw::log::LogConfig config;
+        config.level = ccu::fw::log::LogLevel::kDebug;
 
-        auto result = SecLogAdapter::init("cgw-sec-integration-test", config);
-        ASSERT_EQ(result.error, cgw::fw::log::LogError::kOk);
+        auto result = SecLogAdapter::init("ccu-sec-integration-test", config);
+        ASSERT_EQ(result.error, ccu::fw::log::LogError::kOk);
     }
 };
 
 // ============================================================
-// 上下文传播测试（CGW-SEC-DSN-CR-004 §上下文传播）
+// 上下文传播测试（CCU-SEC-DSN-CR-004 §上下文传播）
 // ============================================================
 
 TEST_F(LogIntegrationTest, ContextScopeBasics) {
@@ -61,7 +61,7 @@ TEST_F(LogIntegrationTest, ContextScopeNesting) {
 }
 
 TEST_F(LogIntegrationTest, SomeipContextScopeBasics) {
-    // 验证 SOME/IP 入站 ContextScope（CGW-SEC-DSN-CR-004 §上下文传播 第1点）
+    // 验证 SOME/IP 入站 ContextScope（CCU-SEC-DSN-CR-004 §上下文传播 第1点）
     {
         auto scope = make_someip_context_scope(
             "trace-001", "req-001", "0x1140", "0x0001", "0x0001"
@@ -81,7 +81,7 @@ TEST_F(LogIntegrationTest, SomeipContextScopeBasics) {
 }
 
 TEST_F(LogIntegrationTest, SeChildScopeInheritsTraceId) {
-    // 验证 SE/HSM 子作用域继承 trace_id（CGW-SEC-DSN-CR-004 §上下文传播 第2点）
+    // 验证 SE/HSM 子作用域继承 trace_id（CCU-SEC-DSN-CR-004 §上下文传播 第2点）
     std::string parent_trace = "parent-trace-123";
     std::string parent_req = "parent-req-456";
 
@@ -112,7 +112,7 @@ TEST_F(LogIntegrationTest, SeChildScopeInheritsTraceId) {
 
 TEST_F(LogIntegrationTest, FullChainContextPropagation) {
     // 模拟全链路：DIAG/FOTA -> SEC Provider -> SE/HSM 子操作
-    // （CGW-SEC-DSN-CR-004 §上下文传播）
+    // （CCU-SEC-DSN-CR-004 §上下文传播）
     std::string trace_id = "fullchain-trace-001";
     std::string request_id = "fullchain-req-001";
 
@@ -151,7 +151,7 @@ TEST_F(LogIntegrationTest, FullChainContextPropagation) {
 
 TEST_F(LogIntegrationTest, DiagToSecContextPropagation) {
     // DIAG -> SEC 调用链上下文传播（沿用诊断会话 session_id）
-    // （CGW-SEC-DSN-CR-004 §上下文传播 第3点：DIAG->SEC 的 getSeed/verifyKey 沿用诊断会话 session_id）
+    // （CCU-SEC-DSN-CR-004 §上下文传播 第3点：DIAG->SEC 的 getSeed/verifyKey 沿用诊断会话 session_id）
     std::string trace_id = "diag-trace-001";
     std::string request_id = "diag-req-001";
     std::string session_id = "diag-sess-001";
@@ -181,7 +181,7 @@ TEST_F(LogIntegrationTest, DiagToSecContextPropagation) {
 
 TEST_F(LogIntegrationTest, FotaToSecContextPropagation) {
     // FOTA -> SEC 调用链上下文传播（沿用业务 trace_id/request_id）
-    // （CGW-SEC-DSN-CR-004 §上下文传播 第3点：FOTA->SEC 的 deriveOtaSession 沿用业务 trace_id/request_id）
+    // （CCU-SEC-DSN-CR-004 §上下文传播 第3点：FOTA->SEC 的 deriveOtaSession 沿用业务 trace_id/request_id）
     std::string trace_id = "fota-trace-001";
     std::string request_id = "fota-req-001";
 
@@ -211,7 +211,7 @@ TEST_F(LogIntegrationTest, FotaToSecContextPropagation) {
 
 TEST_F(LogIntegrationTest, AsyncContextCopy) {
     // 异步任务边界显式复制日志上下文
-    // （CGW-SEC-DSN-CR-004 §上下文传播 第4点：异步任务边界显式复制上下文）
+    // （CCU-SEC-DSN-CR-004 §上下文传播 第4点：异步任务边界显式复制上下文）
     std::string trace_id = "async-trace-001";
     std::string request_id = "async-req-001";
 
@@ -257,7 +257,7 @@ TEST_F(LogIntegrationTest, SessionIdPropagation) {
 }
 
 // ============================================================
-// 脱敏测试（CGW-SEC-DSN-CR-004 §字段白名单与零泄露）
+// 脱敏测试（CCU-SEC-DSN-CR-004 §字段白名单与零泄露）
 // ============================================================
 
 TEST_F(LogIntegrationTest, VinDesensitization) {
@@ -269,13 +269,13 @@ TEST_F(LogIntegrationTest, VinDesensitization) {
 
         SecLogAdapter::facade().info("test.vin_desensitization",
             "VIN should be masked",
-            {slog::f_str("vin", test_vin, cgw::fw::log::Sensitivity::Identifier)}
+            {slog::f_str("vin", test_vin, ccu::fw::log::Sensitivity::Identifier)}
         );
 
         // VIN 不应直接拼入 message
         SecLogAdapter::facade().info("test.vin_not_in_message",
             "VIN processing result",
-            {slog::f_str("vin_hash", test_vin, cgw::fw::log::Sensitivity::Identifier),
+            {slog::f_str("vin_hash", test_vin, ccu::fw::log::Sensitivity::Identifier),
              slog::f_str("result", "OK")}
         );
     }
@@ -297,7 +297,7 @@ TEST_F(LogIntegrationTest, PayloadDesensitization) {
         std::string raw_payload = "raw_ota_session_data_with_versions";
         SecLogAdapter::ota_session().info("test.payload_raw",
             "Raw payload test",
-            {slog::f_str("raw_payload", raw_payload, cgw::fw::log::Sensitivity::Payload)}
+            {slog::f_str("raw_payload", raw_payload, ccu::fw::log::Sensitivity::Payload)}
         );
     }
 }
@@ -309,10 +309,10 @@ TEST_F(LogIntegrationTest, SecretFieldRejection) {
 
         SecLogAdapter::seed_key().info("test.secret_rejection",
             "Secret fields should be rejected",
-            {slog::f_str("seed", "0xABCD1234", cgw::fw::log::Sensitivity::Secret),
-             slog::f_str("key", "0xEF567890", cgw::fw::log::Sensitivity::Secret),
-             slog::f_str("root", "root_key_data", cgw::fw::log::Sensitivity::Secret),
-             slog::f_str("session_key", "session_key_data", cgw::fw::log::Sensitivity::Secret)}
+            {slog::f_str("seed", "0xABCD1234", ccu::fw::log::Sensitivity::Secret),
+             slog::f_str("key", "0xEF567890", ccu::fw::log::Sensitivity::Secret),
+             slog::f_str("root", "root_key_data", ccu::fw::log::Sensitivity::Secret),
+             slog::f_str("session_key", "session_key_data", ccu::fw::log::Sensitivity::Secret)}
         );
 
         // 验证日志可正常执行（框架拒绝 Secret 字段但不崩溃）
@@ -336,9 +336,9 @@ TEST_F(LogIntegrationTest, NonceSaltInfoProhibited) {
         // 误传 nonce 原值（应被框架拒绝）
         SecLogAdapter::ota_session().info("test.nonce_secret",
             "Nonce as Secret",
-            {slog::f_str("nonce", "nonce_raw_value", cgw::fw::log::Sensitivity::Secret),
-             slog::f_str("salt", "salt_raw_value", cgw::fw::log::Sensitivity::Secret),
-             slog::f_str("info", "info_raw_value", cgw::fw::log::Sensitivity::Secret)}
+            {slog::f_str("nonce", "nonce_raw_value", ccu::fw::log::Sensitivity::Secret),
+             slog::f_str("salt", "salt_raw_value", ccu::fw::log::Sensitivity::Secret),
+             slog::f_str("info", "info_raw_value", ccu::fw::log::Sensitivity::Secret)}
         );
 
         SUCCEED();
@@ -361,8 +361,8 @@ TEST_F(LogIntegrationTest, BusinessPayloadProhibited) {
         // 误传明文/密文 payload（应被框架拒绝）
         SecLogAdapter::device_key().info("test.payload_secret",
             "Payload as Secret",
-            {slog::f_str("plaintext", "plaintext_data", cgw::fw::log::Sensitivity::Secret),
-             slog::f_str("ciphertext", "ciphertext_data", cgw::fw::log::Sensitivity::Secret)}
+            {slog::f_str("plaintext", "plaintext_data", ccu::fw::log::Sensitivity::Secret),
+             slog::f_str("ciphertext", "ciphertext_data", ccu::fw::log::Sensitivity::Secret)}
         );
 
         SUCCEED();
@@ -370,7 +370,7 @@ TEST_F(LogIntegrationTest, BusinessPayloadProhibited) {
 }
 
 // ============================================================
-// 并发与压力测试（CGW-SEC-DSN-CR-004 §测试-压力测试）
+// 并发与压力测试（CCU-SEC-DSN-CR-004 §测试-压力测试）
 // ============================================================
 
 TEST_F(LogIntegrationTest, ConcurrentLogging) {
@@ -431,7 +431,7 @@ TEST_F(LogIntegrationTest, ConcurrentContextScopes) {
 
 TEST_F(LogIntegrationTest, LoggingDoesNotBlockBusiness) {
     // 验证普通日志故障不阻断业务
-    // （CGW-SEC-DSN-CR-004 §实时性与故障降级）
+    // （CCU-SEC-DSN-CR-004 §实时性与故障降级）
     {
         auto scope = make_context_scope("trace-noblock", "req-noblock");
 
@@ -449,7 +449,7 @@ TEST_F(LogIntegrationTest, LoggingDoesNotBlockBusiness) {
 
 TEST_F(LogIntegrationTest, HighFrequencyGetSeedVerifyKey) {
     // 高频 getSeed/verifyKey 压力测试
-    // （CGW-SEC-DSN-CR-004 §测试-压力测试：高频 getSeed/verifyKey/deriveOtaSession）
+    // （CCU-SEC-DSN-CR-004 §测试-压力测试：高频 getSeed/verifyKey/deriveOtaSession）
     {
         auto scope = make_someip_context_scope(
             "trace-stress", "req-stress", "0x1140", "0x0001"
@@ -484,14 +484,14 @@ TEST_F(LogIntegrationTest, HighFrequencyGetSeedVerifyKey) {
 }
 
 // ============================================================
-// 故障降级测试（CGW-SEC-DSN-CR-004 §实时性与故障降级）
+// 故障降级测试（CCU-SEC-DSN-CR-004 §实时性与故障降级）
 // ============================================================
 
 TEST_F(LogIntegrationTest, StrictModeInitFailure) {
     // 验证 strict 模式下的 fail-closed 行为
-    cgw::fw::log::LogConfig config;
+    ccu::fw::log::LogConfig config;
     config.strict = true;
-    config.level = cgw::fw::log::LogLevel::kInfo;
+    config.level = ccu::fw::log::LogLevel::kInfo;
 
     // 使用空服务名测试（框架可能返回错误或接受）
     auto result = SecLogAdapter::init("", config);
@@ -501,13 +501,13 @@ TEST_F(LogIntegrationTest, StrictModeInitFailure) {
 
 TEST_F(LogIntegrationTest, NonStrictModeDegradesGracefully) {
     // 非严格模式降级至 console + INFO
-    // （CGW-SEC-DSN-CR-004 §实时性与故障降级：非严格模式降级至 console + INFO）
-    cgw::fw::log::LogConfig config;
+    // （CCU-SEC-DSN-CR-004 §实时性与故障降级：非严格模式降级至 console + INFO）
+    ccu::fw::log::LogConfig config;
     config.strict = false;
-    config.level = cgw::fw::log::LogLevel::kInfo;
+    config.level = ccu::fw::log::LogLevel::kInfo;
     config.console_config.enabled = true;
 
-    auto result = SecLogAdapter::init("cgw-sec-degrade-test", config);
+    auto result = SecLogAdapter::init("ccu-sec-degrade-test", config);
     // 验证不崩溃且可继续记录日志
     SecLogAdapter::facade().info("test.degraded_mode",
         "Logging in degraded mode");
@@ -516,7 +516,7 @@ TEST_F(LogIntegrationTest, NonStrictModeDegradesGracefully) {
 }
 
 // ============================================================
-// 完整事件链路验证（CGW-SEC-DSN-CR-004 §事件目录）
+// 完整事件链路验证（CCU-SEC-DSN-CR-004 §事件目录）
 // ============================================================
 
 TEST_F(LogIntegrationTest, AllBusinessEventsEmitted) {
@@ -587,7 +587,7 @@ TEST_F(LogIntegrationTest, AllErrorEventsEmitted) {
              slog::f_str("security_level", "0x01"),
              slog::f_str("result", "SEED_GENERATION_FAILED"),
              slog::f_int("duration_ms", 5),
-             slog::f_str("error_code", "CGW-SEC-1001")});
+             slog::f_str("error_code", "CCU-SEC-1001")});
 
         // 2. key 验证失败
         SecLogAdapter::seed_key().warn(sec_events::KEY_VERIFY_FAILED,
@@ -597,7 +597,7 @@ TEST_F(LogIntegrationTest, AllErrorEventsEmitted) {
              slog::f_str("operation", "verifyKey"),
              slog::f_str("result", "KEY_VERIFICATION_FAILED"),
              slog::f_int("duration_ms", 3),
-             slog::f_str("error_code", "CGW-SEC-1002")});
+             slog::f_str("error_code", "CCU-SEC-1002")});
 
         // 3. OTA 会话派生失败
         SecLogAdapter::ota_session().error(sec_events::OTA_SESSION_DERIVE_FAILED,
@@ -607,7 +607,7 @@ TEST_F(LogIntegrationTest, AllErrorEventsEmitted) {
              slog::f_str("direction", "download"),
              slog::f_str("result", "OTA_ROOT_MISSING"),
              slog::f_int("duration_ms", 10),
-             slog::f_str("error_code", "CGW-SEC-1003")});
+             slog::f_str("error_code", "CCU-SEC-1003")});
 
         // 4. 设备密钥操作失败
         SecLogAdapter::device_key().error(sec_events::DEVICE_KEY_OPERATION_FAILED,
@@ -616,7 +616,7 @@ TEST_F(LogIntegrationTest, AllErrorEventsEmitted) {
              slog::f_str("operation", "deriveByUid"),
              slog::f_str("result", "DEVICE_ROOT_MISSING"),
              slog::f_int("duration_ms", 8),
-             slog::f_str("error_code", "CGW-SEC-1005")});
+             slog::f_str("error_code", "CCU-SEC-1005")});
 
         // 5. SE/HSM 访问失败
         SecLogAdapter::se_adapter().error(sec_events::SE_ACCESS_FAILED,
@@ -624,7 +624,7 @@ TEST_F(LogIntegrationTest, AllErrorEventsEmitted) {
             {slog::f_str("operation", "storeKey"),
              slog::f_str("result", "SE_HSM_ACCESS_FAILED"),
              slog::f_int("duration_ms", 15),
-             slog::f_str("error_code", "CGW-SEC-1006")});
+             slog::f_str("error_code", "CCU-SEC-1006")});
 
         // 6. 未授权请求
         SecLogAdapter::facade().warn(sec_events::REQUEST_UNAUTHORIZED,
@@ -634,11 +634,11 @@ TEST_F(LogIntegrationTest, AllErrorEventsEmitted) {
              slog::f_str("result", "invalid_request"),
              slog::f_str("someip_service_id", "0x1140"),
              slog::f_str("someip_method_id", "0x0001"),
-             slog::f_str("error_code", "CGW-SEC-1007")});
+             slog::f_str("error_code", "CCU-SEC-1007")});
     }
 
     SUCCEED();
 }
 
 } // namespace
-} // namespace cgw_sec
+} // namespace ccu_sec

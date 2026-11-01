@@ -5,7 +5,7 @@
 #include "constants.h"
 #include "error_codes.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class SeedKeyManagerTest : public ::testing::Test {
 protected:
@@ -22,7 +22,7 @@ protected:
 
 TEST_F(SeedKeyManagerTest, GenerateSeedSuccess) {
     auto result = manager->generateSeed(SECURITY_LEVEL_1);
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_GT(result.seedId, 0u);
     EXPECT_EQ(result.seed.size(), SEED_SIZE);
 }
@@ -35,7 +35,7 @@ TEST_F(SeedKeyManagerTest, GenerateSeedUniqueIds) {
 
 TEST_F(SeedKeyManagerTest, VerifyKeySuccess) {
     auto seedResult = manager->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     std::vector<uint8_t> key(SEED_SIZE);
     for (size_t i = 0; i < SEED_SIZE; ++i) {
@@ -43,27 +43,27 @@ TEST_F(SeedKeyManagerTest, VerifyKeySuccess) {
     }
 
     auto result = manager->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, key);
-    EXPECT_EQ(result, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result, CcuSecErrorCode::SUCCESS);
 }
 
 TEST_F(SeedKeyManagerTest, VerifyKeyFailureWrongKey) {
     auto seedResult = manager->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     std::vector<uint8_t> wrongKey(SEED_SIZE, 0xAA);
     auto result = manager->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, wrongKey);
-    EXPECT_EQ(result, CgwSecErrorCode::KEY_VERIFICATION_FAILED);
+    EXPECT_EQ(result, CcuSecErrorCode::KEY_VERIFICATION_FAILED);
 }
 
 TEST_F(SeedKeyManagerTest, VerifyKeyFailureInvalidSeedId) {
     std::vector<uint8_t> key(SEED_SIZE, 0xAA);
     auto result = manager->verifyKey(SECURITY_LEVEL_1, 9999, key);
-    EXPECT_EQ(result, CgwSecErrorCode::KEY_VERIFICATION_FAILED);
+    EXPECT_EQ(result, CcuSecErrorCode::KEY_VERIFICATION_FAILED);
 }
 
 TEST_F(SeedKeyManagerTest, VerifyKeyFailureConsumedSeed) {
     auto seedResult = manager->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     std::vector<uint8_t> key(SEED_SIZE);
     for (size_t i = 0; i < SEED_SIZE; ++i) {
@@ -71,15 +71,15 @@ TEST_F(SeedKeyManagerTest, VerifyKeyFailureConsumedSeed) {
     }
 
     auto result1 = manager->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, key);
-    EXPECT_EQ(result1, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result1, CcuSecErrorCode::SUCCESS);
 
     auto result2 = manager->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, key);
-    EXPECT_EQ(result2, CgwSecErrorCode::KEY_VERIFICATION_FAILED);
+    EXPECT_EQ(result2, CcuSecErrorCode::KEY_VERIFICATION_FAILED);
 }
 
 TEST_F(SeedKeyManagerTest, VerifyKeyFailureWrongLevel) {
     auto seedResult = manager->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     std::vector<uint8_t> key(SEED_SIZE);
     for (size_t i = 0; i < SEED_SIZE; ++i) {
@@ -87,7 +87,7 @@ TEST_F(SeedKeyManagerTest, VerifyKeyFailureWrongLevel) {
     }
 
     auto result = manager->verifyKey(0x02, seedResult.seedId, key);
-    EXPECT_EQ(result, CgwSecErrorCode::KEY_VERIFICATION_FAILED);
+    EXPECT_EQ(result, CcuSecErrorCode::KEY_VERIFICATION_FAILED);
 }
 
 TEST_F(SeedKeyManagerTest, ActiveSeedCount) {
@@ -104,7 +104,7 @@ TEST_F(SeedKeyManagerTest, MultipleSeedGeneration) {
     std::vector<SeedResult> seeds;
     for (int i = 0; i < 10; ++i) {
         auto result = manager->generateSeed(SECURITY_LEVEL_1);
-        EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+        EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
         seeds.push_back(result);
     }
 
@@ -117,7 +117,7 @@ TEST_F(SeedKeyManagerTest, MultipleSeedGeneration) {
 
 TEST_F(SeedKeyManagerTest, CleanupExpiredSeedsDoesNotAffectActive) {
     auto result = manager->generateSeed(SECURITY_LEVEL_1);
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_EQ(manager->getActiveSeedCount(), 1u);
 
     manager->cleanupExpiredSeeds();

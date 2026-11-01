@@ -21,7 +21,7 @@
 namespace someip = vsomeip;
 #endif
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 // SOME/IP 方法处理函数类型
 using MethodHandler = std::function<void(
@@ -82,7 +82,7 @@ private:
     std::vector<uint8_t> serializeOtaSessionResult(const OtaSessionResult& result);
     std::vector<uint8_t> serializeKeyResult(const KeyResult& result);
     std::vector<uint8_t> serializeSecureDataResult(const SecureDataResult& result);
-    std::vector<uint8_t> serializeErrorCode(CgwSecErrorCode code);
+    std::vector<uint8_t> serializeErrorCode(CcuSecErrorCode code);
     
     SeedResult deserializeSeedResult(const std::vector<uint8_t>& data);
     OtaSessionContext deserializeOtaSessionContext(const std::vector<uint8_t>& data);
@@ -90,4 +90,4 @@ private:
     std::pair<std::string, std::vector<uint8_t>> deserializeWrapRequest(const std::vector<uint8_t>& data);
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

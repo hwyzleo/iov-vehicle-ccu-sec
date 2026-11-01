@@ -1,49 +1,49 @@
 #include <gtest/gtest.h>
 #include "error_codes.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
-TEST(CgwSecErrorCodeTest, SuccessCode) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SUCCESS), "SUCCESS");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::SUCCESS), "Operation completed successfully");
+TEST(CcuSecErrorCodeTest, SuccessCode) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SUCCESS), "SUCCESS");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::SUCCESS), "Operation completed successfully");
 }
 
-TEST(CgwSecErrorCodeTest, SeedGenerationFailed) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SEED_GENERATION_FAILED), "SEED_GENERATION_FAILED");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::SEED_GENERATION_FAILED), "Seed generation failed");
+TEST(CcuSecErrorCodeTest, SeedGenerationFailed) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SEED_GENERATION_FAILED), "SEED_GENERATION_FAILED");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::SEED_GENERATION_FAILED), "Seed generation failed");
 }
 
-TEST(CgwSecErrorCodeTest, KeyVerificationFailed) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::KEY_VERIFICATION_FAILED), "KEY_VERIFICATION_FAILED");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::KEY_VERIFICATION_FAILED), "Key verification failed");
+TEST(CcuSecErrorCodeTest, KeyVerificationFailed) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::KEY_VERIFICATION_FAILED), "KEY_VERIFICATION_FAILED");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::KEY_VERIFICATION_FAILED), "Key verification failed");
 }
 
-TEST(CgwSecErrorCodeTest, OtaRootMissing) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::OTA_ROOT_MISSING), "OTA_ROOT_MISSING");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::OTA_ROOT_MISSING), "OTA vehicle root not injected");
+TEST(CcuSecErrorCodeTest, OtaRootMissing) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::OTA_ROOT_MISSING), "OTA_ROOT_MISSING");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::OTA_ROOT_MISSING), "OTA vehicle root not injected");
 }
 
-TEST(CgwSecErrorCodeTest, SessionKeyDerivationFailed) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED), "SESSION_KEY_DERIVATION_FAILED");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED), "Session key derivation failed");
+TEST(CcuSecErrorCodeTest, SessionKeyDerivationFailed) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED), "SESSION_KEY_DERIVATION_FAILED");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED), "Session key derivation failed");
 }
 
-TEST(CgwSecErrorCodeTest, DeviceRootMissing) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::DEVICE_ROOT_MISSING), "DEVICE_ROOT_MISSING");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::DEVICE_ROOT_MISSING), "Gateway device root not provisioned");
+TEST(CcuSecErrorCodeTest, DeviceRootMissing) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::DEVICE_ROOT_MISSING), "DEVICE_ROOT_MISSING");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::DEVICE_ROOT_MISSING), "CCU device root not provisioned");
 }
 
-TEST(CgwSecErrorCodeTest, SeHsmAccessFailed) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SE_HSM_ACCESS_FAILED), "SE_HSM_ACCESS_FAILED");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::SE_HSM_ACCESS_FAILED), "SE/HSM access failed (fail-closed)");
+TEST(CcuSecErrorCodeTest, SeHsmAccessFailed) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SE_HSM_ACCESS_FAILED), "SE_HSM_ACCESS_FAILED");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::SE_HSM_ACCESS_FAILED), "SE/HSM access failed (fail-closed)");
 }
 
-TEST(CgwSecErrorCodeTest, UnauthorizedRequest) {
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST), "UNAUTHORIZED_REQUEST");
-    EXPECT_EQ(errorCodeDescription(CgwSecErrorCode::UNAUTHORIZED_REQUEST), "Request unauthorized or session not authenticated");
+TEST(CcuSecErrorCodeTest, UnauthorizedRequest) {
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST), "UNAUTHORIZED_REQUEST");
+    EXPECT_EQ(errorCodeDescription(CcuSecErrorCode::UNAUTHORIZED_REQUEST), "Request unauthorized or session not authenticated");
 }
 
-TEST(CgwSecErrorCodeTest, UnknownErrorCode) {
-    EXPECT_EQ(errorCodeToString(static_cast<CgwSecErrorCode>(9999)), "UNKNOWN_ERROR");
-    EXPECT_EQ(errorCodeDescription(static_cast<CgwSecErrorCode>(9999)), "Unknown error");
+TEST(CcuSecErrorCodeTest, UnknownErrorCode) {
+    EXPECT_EQ(errorCodeToString(static_cast<CcuSecErrorCode>(9999)), "UNKNOWN_ERROR");
+    EXPECT_EQ(errorCodeDescription(static_cast<CcuSecErrorCode>(9999)), "Unknown error");
 }

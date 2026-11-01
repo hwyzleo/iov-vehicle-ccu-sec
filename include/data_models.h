@@ -7,12 +7,12 @@
 #include <map>
 #include "error_codes.h"
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 struct SeedResult {
     uint32_t seedId = 0;
     std::vector<uint8_t> seed;
-    CgwSecErrorCode error = CgwSecErrorCode::SUCCESS;
+    CcuSecErrorCode error = CcuSecErrorCode::SUCCESS;
 };
 
 struct SeedInfo {
@@ -34,7 +34,7 @@ struct OtaSessionContext {
 struct OtaSessionResult {
     uint32_t sessionKeyHandle = 0;
     std::vector<uint8_t> nonce;
-    CgwSecErrorCode error = CgwSecErrorCode::SUCCESS;
+    CcuSecErrorCode error = CcuSecErrorCode::SUCCESS;
 };
 
 struct SecConfig {
@@ -60,4 +60,4 @@ struct SeHsmConfig {
     std::map<std::string, std::string> keyFiles;
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

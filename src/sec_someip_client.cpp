@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <chrono>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SecSomeipClient::SecSomeipClient(const SomeipConfig& config) : config_(config) {
 }
@@ -87,7 +87,7 @@ void SecSomeipClient::initializeApplication() {
         throw std::runtime_error("Failed to get vsomeip runtime");
     }
     
-    application_ = runtime_->create_application("cgw-sec-client");
+    application_ = runtime_->create_application("ccu-sec-client");
     if (!application_) {
         throw std::runtime_error("Failed to create vsomeip application");
     }
@@ -156,7 +156,7 @@ void SecSomeipClient::onMessage(const std::shared_ptr<someip::Message>& response
 SeedResult SecSomeipClient::getSeed(uint8_t level) {
     if (!connected_) {
         SeedResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     
@@ -166,7 +166,7 @@ SeedResult SecSomeipClient::getSeed(uint8_t level) {
     // 反序列化响应
     if (responsePayload.size() < 4) {
         SeedResult result;
-        result.error = CgwSecErrorCode::SEED_GENERATION_FAILED;
+        result.error = CcuSecErrorCode::SEED_GENERATION_FAILED;
         return result;
     }
     
@@ -174,9 +174,9 @@ SeedResult SecSomeipClient::getSeed(uint8_t level) {
                          (responsePayload[2] << 8) | responsePayload[3];
     
     SeedResult result;
-    result.error = static_cast<CgwSecErrorCode>(errorCode);
+    result.error = static_cast<CcuSecErrorCode>(errorCode);
     
-    if (result.error == CgwSecErrorCode::SUCCESS && responsePayload.size() >= 12) {
+    if (result.error == CcuSecErrorCode::SUCCESS && responsePayload.size() >= 12) {
         result.seedId = (responsePayload[4] << 24) | (responsePayload[5] << 16) | 
                         (responsePayload[6] << 8) | responsePayload[7];
         
@@ -192,30 +192,30 @@ SeedResult SecSomeipClient::getSeed(uint8_t level) {
     return result;
 }
 
-CgwSecErrorCode SecSomeipClient::verifyKey(uint8_t level, uint32_t seedId, 
+CcuSecErrorCode SecSomeipClient::verifyKey(uint8_t level, uint32_t seedId, 
                                            const std::vector<uint8_t>& key) {
     if (!connected_) {
-        return CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        return CcuSecErrorCode::UNAUTHORIZED_REQUEST;
     }
     
     auto requestPayload = serializeVerifyKeyRequest(level, seedId, key);
     auto responsePayload = sendRequest(config_.verifyKeyMethodId, requestPayload);
     
     if (responsePayload.size() < 4) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
     
     uint32_t errorCode = (responsePayload[0] << 24) | (responsePayload[1] << 16) | 
                          (responsePayload[2] << 8) | responsePayload[3];
     
-    return static_cast<CgwSecErrorCode>(errorCode);
+    return static_cast<CcuSecErrorCode>(errorCode);
 }
 
 OtaSessionResult SecSomeipClient::deriveOtaSession(const OtaSessionContext& context, 
                                                     uint8_t level) {
     if (!connected_) {
         OtaSessionResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     
@@ -224,7 +224,7 @@ OtaSessionResult SecSomeipClient::deriveOtaSession(const OtaSessionContext& cont
     
     if (responsePayload.size() < 4) {
         OtaSessionResult result;
-        result.error = CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED;
+        result.error = CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED;
         return result;
     }
     
@@ -232,9 +232,9 @@ OtaSessionResult SecSomeipClient::deriveOtaSession(const OtaSessionContext& cont
                          (responsePayload[2] << 8) | responsePayload[3];
     
     OtaSessionResult result;
-    result.error = static_cast<CgwSecErrorCode>(errorCode);
+    result.error = static_cast<CcuSecErrorCode>(errorCode);
     
-    if (result.error == CgwSecErrorCode::SUCCESS && responsePayload.size() >= 12) {
+    if (result.error == CcuSecErrorCode::SUCCESS && responsePayload.size() >= 12) {
         result.sessionKeyHandle = (responsePayload[4] << 24) | (responsePayload[5] << 16) | 
                                   (responsePayload[6] << 8) | responsePayload[7];
         
@@ -255,7 +255,7 @@ KeyResult SecSomeipClient::deriveByUid(const std::string& subKeyName,
                                        uint8_t level) {
     if (!connected_) {
         KeyResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     
@@ -264,7 +264,7 @@ KeyResult SecSomeipClient::deriveByUid(const std::string& subKeyName,
     
     if (responsePayload.size() < 4) {
         KeyResult result;
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
     
@@ -272,9 +272,9 @@ KeyResult SecSomeipClient::deriveByUid(const std::string& subKeyName,
                          (responsePayload[2] << 8) | responsePayload[3];
     
     KeyResult result;
-    result.error = static_cast<CgwSecErrorCode>(errorCode);
+    result.error = static_cast<CcuSecErrorCode>(errorCode);
     
-    if (result.error == CgwSecErrorCode::SUCCESS && responsePayload.size() >= 8) {
+    if (result.error == CcuSecErrorCode::SUCCESS && responsePayload.size() >= 8) {
         uint32_t keyLength = (responsePayload[4] << 24) | (responsePayload[5] << 16) | 
                              (responsePayload[6] << 8) | responsePayload[7];
         
@@ -290,7 +290,7 @@ KeyResult SecSomeipClient::deriveByUid(const std::string& subKeyName,
 SecureDataResult SecSomeipClient::wrapByUid(const std::vector<uint8_t>& data, uint8_t level) {
     if (!connected_) {
         SecureDataResult result;
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     
@@ -299,7 +299,7 @@ SecureDataResult SecSomeipClient::wrapByUid(const std::vector<uint8_t>& data, ui
     
     if (responsePayload.size() < 4) {
         SecureDataResult result;
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
     
@@ -307,9 +307,9 @@ SecureDataResult SecSomeipClient::wrapByUid(const std::vector<uint8_t>& data, ui
                          (responsePayload[2] << 8) | responsePayload[3];
     
     SecureDataResult result;
-    result.error = static_cast<CgwSecErrorCode>(errorCode);
+    result.error = static_cast<CcuSecErrorCode>(errorCode);
     
-    if (result.error == CgwSecErrorCode::SUCCESS && responsePayload.size() >= 8) {
+    if (result.error == CcuSecErrorCode::SUCCESS && responsePayload.size() >= 8) {
         uint32_t dataLength = (responsePayload[4] << 24) | (responsePayload[5] << 16) | 
                               (responsePayload[6] << 8) | responsePayload[7];
         
@@ -531,4 +531,4 @@ std::vector<uint8_t> SecSomeipClient::sendRequest(uint16_t methodId,
     }
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

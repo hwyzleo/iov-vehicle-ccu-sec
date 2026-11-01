@@ -4,9 +4,9 @@
 #include <cstdint>
 #include <ostream>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
-enum class CgwSecErrorCode : uint32_t {
+enum class CcuSecErrorCode : uint32_t {
     SUCCESS = 0,
     SEED_GENERATION_FAILED = 1001,
     KEY_VERIFICATION_FAILED = 1002,
@@ -17,16 +17,16 @@ enum class CgwSecErrorCode : uint32_t {
     UNAUTHORIZED_REQUEST = 1007
 };
 
-std::string errorCodeToString(CgwSecErrorCode code);
-std::string errorCodeDescription(CgwSecErrorCode code);
+std::string errorCodeToString(CcuSecErrorCode code);
+std::string errorCodeDescription(CcuSecErrorCode code);
 
 // 为枚举提供流输出运算符。
 // 目的：让 GoogleTest 在断言失败时通过 operator<< 打印该枚举，
 // 而不是回退到 RawBytesPrinter 的字节打印路径——后者在本环境的
 // libc++/GTest ABI 组合下会触发 SEGV。
-inline std::ostream& operator<<(std::ostream& os, CgwSecErrorCode code) {
+inline std::ostream& operator<<(std::ostream& os, CcuSecErrorCode code) {
     return os << errorCodeToString(code)
               << "(" << static_cast<uint32_t>(code) << ")";
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

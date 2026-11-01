@@ -9,7 +9,7 @@
 #include "constants.h"
 #include <string>
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class SomeipIntegrationTest : public ::testing::Test {
 protected:
@@ -104,7 +104,7 @@ TEST_F(SomeipIntegrationTest, GetSeedIntegration) {
     std::cout << "getSeed returned: error=" << static_cast<uint32_t>(result.error) << 
               ", seedId=" << result.seedId << 
               ", seed.size=" << result.seed.size() << std::endl;
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_GT(result.seedId, 0);
     EXPECT_EQ(result.seed.size(), SEED_SIZE);
 }
@@ -114,12 +114,12 @@ TEST_F(SomeipIntegrationTest, VerifyKeyIntegration) {
     
     // 先获取 seed
     auto seedResult = client_->getSeed(0x01);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
     
     // 这里应该使用正确的 key，但测试中我们使用错误的 key
     std::vector<uint8_t> wrongKey(KEY_SIZE, 0x00);
     auto verifyResult = client_->verifyKey(0x01, seedResult.seedId, wrongKey);
-    EXPECT_EQ(verifyResult, CgwSecErrorCode::KEY_VERIFICATION_FAILED);
+    EXPECT_EQ(verifyResult, CcuSecErrorCode::KEY_VERIFICATION_FAILED);
 }
 
 TEST_F(SomeipIntegrationTest, DeriveOtaSessionIntegration) {
@@ -137,7 +137,7 @@ TEST_F(SomeipIntegrationTest, DeriveOtaSessionIntegration) {
     auto result = client_->deriveOtaSession(context, 0x01);
     
     // 由于软件模拟 HSM 中存储了 OTA_VEHICLE_ROOT 密钥，应该返回成功
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_GT(result.sessionKeyHandle, 0u);
     EXPECT_EQ(result.nonce.size(), NONCE_SIZE);
 }
@@ -152,5 +152,5 @@ TEST_F(SomeipIntegrationTest, ServiceUnavailable) {
     EXPECT_FALSE(client_->isConnected());
     
     auto result = client_->getSeed(0x01);
-    EXPECT_EQ(result.error, CgwSecErrorCode::UNAUTHORIZED_REQUEST);
+    EXPECT_EQ(result.error, CcuSecErrorCode::UNAUTHORIZED_REQUEST);
 }

@@ -3,7 +3,7 @@
 #include "constants.h"
 #include "data_models.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class SecSomeipProxyTest : public ::testing::Test {
 protected:

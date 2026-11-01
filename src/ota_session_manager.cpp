@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 OtaSessionManager::OtaSessionManager(std::shared_ptr<SeHsmInterface> hsm)
     : hsm_(std::move(hsm)) {}
@@ -19,7 +19,7 @@ OtaSessionResult OtaSessionManager::deriveSessionKey(const OtaSessionContext& co
     OtaSessionResult result;
 
     if (!hsm_->hasKey(OTA_VEHICLE_ROOT_KEY_NAME)) {
-        result.error = CgwSecErrorCode::OTA_ROOT_MISSING;
+        result.error = CcuSecErrorCode::OTA_ROOT_MISSING;
         return result;
     }
 
@@ -35,8 +35,8 @@ OtaSessionResult OtaSessionManager::deriveSessionKey(const OtaSessionContext& co
                               reinterpret_cast<const uint8_t*>(&context.timestamp) + sizeof(context.timestamp));
 
     auto keyResult = hsm_->deriveKey(OTA_VEHICLE_ROOT_KEY_NAME, derivationContext);
-    if (keyResult.error != CgwSecErrorCode::SUCCESS) {
-        result.error = CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED;
+    if (keyResult.error != CcuSecErrorCode::SUCCESS) {
+        result.error = CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED;
         return result;
     }
 
@@ -45,7 +45,7 @@ OtaSessionResult OtaSessionManager::deriveSessionKey(const OtaSessionContext& co
 
     result.sessionKeyHandle = handle;
     result.nonce = generateNonce();
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
 
     return result;
 }
@@ -63,4 +63,4 @@ std::vector<uint8_t> OtaSessionManager::generateNonce() {
     return nonce;
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

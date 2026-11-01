@@ -5,7 +5,7 @@
 #include "config_loader.h"
 #include <string>
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class SecSomeipServerTest : public ::testing::Test {
 protected:

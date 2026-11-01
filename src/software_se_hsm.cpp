@@ -4,7 +4,7 @@
 #include <algorithm>
 #include <cstring>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SoftwareSeHsm::SoftwareSeHsm() = default;
 
@@ -64,25 +64,25 @@ SeedResult SoftwareSeHsm::generateSeed(uint8_t level) {
 
     seedPool_[result.seedId] = info;
 
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
     return result;
 }
 
-CgwSecErrorCode SoftwareSeHsm::verifyKey(uint8_t level, uint32_t seedId,
+CcuSecErrorCode SoftwareSeHsm::verifyKey(uint8_t level, uint32_t seedId,
                                            const std::vector<uint8_t>& key,
                                            const std::vector<uint8_t>& expectedSeed) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto it = seedPool_.find(seedId);
     if (it == seedPool_.end()) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     auto& seedInfo = it->second;
 
     // Check if seed is consumed
     if (seedInfo.consumed) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     // Check if seed is expired
@@ -91,12 +91,12 @@ CgwSecErrorCode SoftwareSeHsm::verifyKey(uint8_t level, uint32_t seedId,
         now - seedInfo.createTime).count();
     if (elapsed > SEED_EXPIRATION_MS) {
         seedPool_.erase(it);
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     // Check level
     if (seedInfo.level != level) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     // In software simulation: key = seed XOR 0xFF
@@ -106,13 +106,13 @@ CgwSecErrorCode SoftwareSeHsm::verifyKey(uint8_t level, uint32_t seedId,
     }
 
     if (key != expectedKey) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     // Mark seed as consumed
     seedInfo.consumed = true;
 
-    return CgwSecErrorCode::SUCCESS;
+    return CcuSecErrorCode::SUCCESS;
 }
 
 KeyResult SoftwareSeHsm::deriveKey(const std::string& rootKeyName,
@@ -123,21 +123,21 @@ KeyResult SoftwareSeHsm::deriveKey(const std::string& rootKeyName,
 
     auto it = keyStore_.find(rootKeyName);
     if (it == keyStore_.end()) {
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
 
     result.key = deriveKeyFromRoot(it->second, context);
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
     return result;
 }
 
-CgwSecErrorCode SoftwareSeHsm::storeKey(const std::string& keyName,
+CcuSecErrorCode SoftwareSeHsm::storeKey(const std::string& keyName,
                                          const std::vector<uint8_t>& keyMaterial) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     keyStore_[keyName] = keyMaterial;
-    return CgwSecErrorCode::SUCCESS;
+    return CcuSecErrorCode::SUCCESS;
 }
 
 KeyResult SoftwareSeHsm::loadKey(const std::string& keyName) {
@@ -147,12 +147,12 @@ KeyResult SoftwareSeHsm::loadKey(const std::string& keyName) {
 
     auto it = keyStore_.find(keyName);
     if (it == keyStore_.end()) {
-        result.error = CgwSecErrorCode::DEVICE_ROOT_MISSING;
+        result.error = CcuSecErrorCode::DEVICE_ROOT_MISSING;
         return result;
     }
 
     result.key = it->second;
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
     return result;
 }
 
@@ -161,7 +161,7 @@ bool SoftwareSeHsm::hasKey(const std::string& keyName) {
     return keyStore_.find(keyName) != keyStore_.end();
 }
 
-CgwSecErrorCode SoftwareSeHsm::secureStore(const std::vector<uint8_t>& key,
+CcuSecErrorCode SoftwareSeHsm::secureStore(const std::vector<uint8_t>& key,
                                              const std::vector<uint8_t>& data) {
     std::lock_guard<std::mutex> lock(mutex_);
 
@@ -173,7 +173,7 @@ CgwSecErrorCode SoftwareSeHsm::secureStore(const std::vector<uint8_t>& key,
     }
 
     secureStorage_[key] = encrypted;
-    return CgwSecErrorCode::SUCCESS;
+    return CcuSecErrorCode::SUCCESS;
 }
 
 SecureDataResult SoftwareSeHsm::secureLoad(const std::vector<uint8_t>& key) {
@@ -183,7 +183,7 @@ SecureDataResult SoftwareSeHsm::secureLoad(const std::vector<uint8_t>& key) {
 
     auto it = secureStorage_.find(key);
     if (it == secureStorage_.end()) {
-        result.error = CgwSecErrorCode::SE_HSM_ACCESS_FAILED;
+        result.error = CcuSecErrorCode::SE_HSM_ACCESS_FAILED;
         return result;
     }
 
@@ -194,8 +194,8 @@ SecureDataResult SoftwareSeHsm::secureLoad(const std::vector<uint8_t>& key) {
         result.data[i] = encrypted[i] ^ key[i % key.size()];
     }
 
-    result.error = CgwSecErrorCode::SUCCESS;
+    result.error = CcuSecErrorCode::SUCCESS;
     return result;
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

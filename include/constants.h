@@ -3,14 +3,14 @@
 #include <cstdint>
 #include <cstddef>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 // ====================================================================
 // SOME/IP Service & Instance ID 定义
-// 来源：整车 SOME/IP Service Registry 统一分配（CGW-SEC-DSN-CR-003）
+// 来源：整车 SOME/IP Service Registry 统一分配（CCU-SEC-DSN-CR-003）
 // ====================================================================
 
-// Service ID: 0x1140（CGW-SEC 安全服务）
+// Service ID: 0x1140（CCU-SEC 安全服务）
 // Instance ID: 0x0001
 // Transport: TCP
 // SOME/IP 端口: 51140
@@ -29,11 +29,11 @@ constexpr uint16_t SEC_SOMEIP_PORT = 51140;
 // - 标准命名统一采用 METHOD_<动作> 大写蛇形
 // - 一经分配不复用、不重编号
 //
-// Method ID 分配表（v1.1，CGW-SEC-DSN-CR-002）：
+// Method ID 分配表（v1.1，CCU-SEC-DSN-CR-002）：
 // | Method ID | 标准名                  | 方法签名                        | 方向                | 对应需求 |
 // |-----------|------------------------|--------------------------------|--------------------|---------| 
-// | 0x0001    | METHOD_GET_SEED        | getSeed(level)                 | CGW-DIAG → SEC     | US-001  |
-// | 0x0002    | METHOD_VERIFY_KEY      | verifyKey(level, seedId, key)  | CGW-DIAG → SEC     | US-001  |
+// | 0x0001    | METHOD_GET_SEED        | getSeed(level)                 | CCU-DIAG → SEC     | US-001  |
+// | 0x0002    | METHOD_VERIFY_KEY      | verifyKey(level, seedId, key)  | CCU-DIAG → SEC     | US-001  |
 // | 0x0003    | METHOD_DERIVE_OTA_SESSION | deriveOtaSession(context)   | FOTA/OTA → SEC     | US-002  |
 // | 0x0004    | METHOD_DERIVE_BY_UID   | deriveByUid(keyName, info)     | 设备级调用方 → SEC  | US-003  |
 // | 0x0005    | METHOD_WRAP_BY_UID     | wrapByUid(keyName, plaintext)  | 设备级调用方 → SEC  | US-003  |
@@ -69,7 +69,7 @@ constexpr size_t SESSION_KEY_SIZE = 32; // AES-256
 
 // Key names
 constexpr const char* OTA_VEHICLE_ROOT_KEY_NAME = "OTA_VEHICLE_ROOT";
-constexpr const char* CGW_DEVICE_ROOT_KEY_NAME = "CGW_DEVICE_ROOT";
+constexpr const char* CCU_DEVICE_ROOT_KEY_NAME = "CCU_DEVICE_ROOT";
 constexpr const char* DIAG_SEEDKEY_SECRET_NAME = "DIAG_SEEDKEY_SECRET";
 
-} // namespace cgw_sec
+} // namespace ccu_sec

@@ -5,7 +5,7 @@
 #include <chrono>
 #include <nlohmann/json.hpp>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SecSomeipServer::SecSomeipServer(std::shared_ptr<SecSomeipService> service,
                                  const SomeipConfig& config)
@@ -25,7 +25,7 @@ void SecSomeipServer::initializeApplication() {
     }
     
     // 创建应用程序
-    application_ = runtime_->create_application("cgw-sec");
+    application_ = runtime_->create_application("ccu-sec");
     if (!application_) {
         throw std::runtime_error("Failed to create vsomeip application");
     }
@@ -124,7 +124,7 @@ bool SecSomeipServer::start() {
             "Invalid configuration: serviceId and instanceId must be non-zero",
             {slog::f_str("someip_service_id", hex_id(config_.serviceId)),
              slog::f_str("someip_instance_id", hex_id(config_.instanceId)),
-             slog::f_str("error_code", "CGW-FW-0201")});
+             slog::f_str("error_code", "CCU-FW-0201")});
         return false;
     }
     
@@ -190,9 +190,9 @@ bool SecSomeipServer::isServiceAvailable() const {
 
 // ============================================================
 // 方法处理函数实现
-// 每个 handler 建立 ContextScope（CGW-SEC-DSN-CR-004 §上下文传播），
-// 输出事件目录中的结构化事件（CGW-SEC-DSN-CR-004 §事件目录），
-// 仅记录非密钥元数据（CGW-SEC-DSN-CR-004 §字段白名单与零泄露）。
+// 每个 handler 建立 ContextScope（CCU-SEC-DSN-CR-004 §上下文传播），
+// 输出事件目录中的结构化事件（CCU-SEC-DSN-CR-004 §事件目录），
+// 仅记录非密钥元数据（CCU-SEC-DSN-CR-004 §字段白名单与零泄露）。
 // ============================================================
 
 void SecSomeipServer::handleGetSeed(
@@ -202,7 +202,7 @@ void SecSomeipServer::handleGetSeed(
     auto startTime = std::chrono::steady_clock::now();
 
     // 建立 SOME/IP 入站 ContextScope
-    // （CGW-SEC-DSN-CR-004 §上下文传播 第1点：Provider 收到请求时建立 ContextScope）
+    // （CCU-SEC-DSN-CR-004 §上下文传播 第1点：Provider 收到请求时建立 ContextScope）
     auto scope = make_someip_context_scope(
         generate_trace_id(), generate_request_id(),
         hex_id(config_.serviceId), hex_id(config_.getSeedMethodId),
@@ -223,10 +223,10 @@ void SecSomeipServer::handleGetSeed(
                 {slog::f_str("caller", "unknown"),
                  slog::f_str("operation", "getSeed"),
                  slog::f_str("result", "invalid_request"),
-                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST)),
                  slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
-            errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
+            errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
             return;
         }
@@ -248,7 +248,7 @@ void SecSomeipServer::handleGetSeed(
         responsePayload->set_data(serializeSeedResult(result));
         response->set_payload(responsePayload);
         
-        if (result.error == CgwSecErrorCode::SUCCESS) {
+        if (result.error == CcuSecErrorCode::SUCCESS) {
             // sec.seed.generated: getSeed 成功
             // 仅记录非密钥元数据，不记录 seed 内容
             SecLogAdapter::seed_key().info(sec_events::SEED_GENERATED,
@@ -279,9 +279,9 @@ void SecSomeipServer::handleGetSeed(
             {slog::f_str("caller", "diag"),
              slog::f_str("result", "exception"),
              slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
-             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::SEED_GENERATION_FAILED))});
+             slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::SEED_GENERATION_FAILED))});
         auto errorPayload = runtime_->create_payload();
-        errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::SEED_GENERATION_FAILED));
+        errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::SEED_GENERATION_FAILED));
         response->set_payload(errorPayload);
     }
 }
@@ -311,10 +311,10 @@ void SecSomeipServer::handleVerifyKey(
                 {slog::f_str("caller", "unknown"),
                  slog::f_str("operation", "verifyKey"),
                  slog::f_str("result", "invalid_request"),
-                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST)),
                  slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
-            errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
+            errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
             return;
         }
@@ -331,10 +331,10 @@ void SecSomeipServer::handleVerifyKey(
                 {slog::f_str("caller", "unknown"),
                  slog::f_str("operation", "verifyKey"),
                  slog::f_str("result", "invalid_request"),
-                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST)),
                  slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
-            errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
+            errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
             return;
         }
@@ -342,7 +342,7 @@ void SecSomeipServer::handleVerifyKey(
         std::vector<uint8_t> key(data + 9, data + 9 + keyLength);
         
         // 调用业务逻辑（创建 SE/HSM 子作用域）
-        CgwSecErrorCode result;
+        CcuSecErrorCode result;
         {
             auto seScope = make_se_child_scope("verifyKey");
             result = service_->verifyKey(level, seedId, key);
@@ -358,7 +358,7 @@ void SecSomeipServer::handleVerifyKey(
         
         // sec.key.verify.succeeded/failed: verifyKey 完成
         // 仅记录非密钥元数据，不记录 key 内容
-        if (result == CgwSecErrorCode::SUCCESS) {
+        if (result == CcuSecErrorCode::SUCCESS) {
             SecLogAdapter::seed_key().info(sec_events::KEY_VERIFY_SUCCEEDED,
                 "verifyKey succeeded",
                 {slog::f_str("caller", "diag"),
@@ -387,9 +387,9 @@ void SecSomeipServer::handleVerifyKey(
              slog::f_str("operation", "verifyKey"),
              slog::f_str("result", "exception"),
              slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
-             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::KEY_VERIFICATION_FAILED))});
+             slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::KEY_VERIFICATION_FAILED))});
         auto errorPayload = runtime_->create_payload();
-        errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::KEY_VERIFICATION_FAILED));
+        errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::KEY_VERIFICATION_FAILED));
         response->set_payload(errorPayload);
     }
 }
@@ -418,10 +418,10 @@ void SecSomeipServer::handleDeriveOtaSession(
                 {slog::f_str("caller", "unknown"),
                  slog::f_str("operation", "deriveOtaSession"),
                  slog::f_str("result", "invalid_request"),
-                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST)),
                  slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
-            errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
+            errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
             return;
         }
@@ -449,7 +449,7 @@ void SecSomeipServer::handleDeriveOtaSession(
         
         // sec.ota.session.derived/derive.failed: OTA 会话派生
         // 仅记录非密钥元数据，不记录 session_key、nonce 原值
-        if (result.error == CgwSecErrorCode::SUCCESS) {
+        if (result.error == CcuSecErrorCode::SUCCESS) {
             SecLogAdapter::ota_session().info(sec_events::OTA_SESSION_DERIVED,
                 "OTA session derived",
                 {slog::f_str("caller", "fota"),
@@ -477,9 +477,9 @@ void SecSomeipServer::handleDeriveOtaSession(
              slog::f_str("operation", "deriveOtaSession"),
              slog::f_str("result", "exception"),
              slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
-             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED))});
+             slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED))});
         auto errorPayload = runtime_->create_payload();
-        errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED));
+        errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED));
         response->set_payload(errorPayload);
     }
 }
@@ -508,10 +508,10 @@ void SecSomeipServer::handleDeriveByUid(
                 {slog::f_str("caller", "unknown"),
                  slog::f_str("operation", "deriveByUid"),
                  slog::f_str("result", "invalid_request"),
-                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST)),
                  slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
-            errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
+            errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
             return;
         }
@@ -539,7 +539,7 @@ void SecSomeipServer::handleDeriveByUid(
         
         // sec.device.key.operation.failed: 设备根缺失或派生失败
         // 仅记录非密钥元数据，不记录 key 内容
-        if (result.error == CgwSecErrorCode::SUCCESS) {
+        if (result.error == CcuSecErrorCode::SUCCESS) {
             SecLogAdapter::device_key().info("sec.device.key.derived",
                 "deriveByUid succeeded",
                 {slog::f_str("caller", "device"),
@@ -565,9 +565,9 @@ void SecSomeipServer::handleDeriveByUid(
              slog::f_str("operation", "deriveByUid"),
              slog::f_str("result", "exception"),
              slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
-             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::DEVICE_ROOT_MISSING))});
+             slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::DEVICE_ROOT_MISSING))});
         auto errorPayload = runtime_->create_payload();
-        errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::DEVICE_ROOT_MISSING));
+        errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::DEVICE_ROOT_MISSING));
         response->set_payload(errorPayload);
     }
 }
@@ -596,10 +596,10 @@ void SecSomeipServer::handleWrapByUid(
                 {slog::f_str("caller", "unknown"),
                  slog::f_str("operation", "wrapByUid"),
                  slog::f_str("result", "invalid_request"),
-                 slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST)),
+                 slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST)),
                  slog::f_int("duration_ms", static_cast<int64_t>(duration_ms))});
             auto errorPayload = runtime_->create_payload();
-            errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::UNAUTHORIZED_REQUEST));
+            errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::UNAUTHORIZED_REQUEST));
             response->set_payload(errorPayload);
             return;
         }
@@ -626,7 +626,7 @@ void SecSomeipServer::handleWrapByUid(
         response->set_payload(responsePayload);
         
         // 仅记录非密钥元数据，不记录 wrapped data 内容
-        if (result.error == CgwSecErrorCode::SUCCESS) {
+        if (result.error == CcuSecErrorCode::SUCCESS) {
             SecLogAdapter::device_key().info("sec.device.key.wrapped",
                 "wrapByUid succeeded",
                 {slog::f_str("caller", "device"),
@@ -652,9 +652,9 @@ void SecSomeipServer::handleWrapByUid(
              slog::f_str("operation", "wrapByUid"),
              slog::f_str("result", "exception"),
              slog::f_int("duration_ms", static_cast<int64_t>(duration_ms)),
-             slog::f_str("error_code", errorCodeToString(CgwSecErrorCode::DEVICE_ROOT_MISSING))});
+             slog::f_str("error_code", errorCodeToString(CcuSecErrorCode::DEVICE_ROOT_MISSING))});
         auto errorPayload = runtime_->create_payload();
-        errorPayload->set_data(serializeErrorCode(CgwSecErrorCode::DEVICE_ROOT_MISSING));
+        errorPayload->set_data(serializeErrorCode(CcuSecErrorCode::DEVICE_ROOT_MISSING));
         response->set_payload(errorPayload);
     }
 }
@@ -669,7 +669,7 @@ std::vector<uint8_t> SecSomeipServer::serializeSeedResult(const SeedResult& resu
     data.push_back(static_cast<uint8_t>((static_cast<uint32_t>(result.error) >> 8) & 0xFF));
     data.push_back(static_cast<uint8_t>(static_cast<uint32_t>(result.error) & 0xFF));
     
-    if (result.error == CgwSecErrorCode::SUCCESS) {
+    if (result.error == CcuSecErrorCode::SUCCESS) {
         // seedId (4 bytes)
         data.push_back(static_cast<uint8_t>((result.seedId >> 24) & 0xFF));
         data.push_back(static_cast<uint8_t>((result.seedId >> 16) & 0xFF));
@@ -699,7 +699,7 @@ std::vector<uint8_t> SecSomeipServer::serializeOtaSessionResult(const OtaSession
     data.push_back(static_cast<uint8_t>((static_cast<uint32_t>(result.error) >> 8) & 0xFF));
     data.push_back(static_cast<uint8_t>(static_cast<uint32_t>(result.error) & 0xFF));
     
-    if (result.error == CgwSecErrorCode::SUCCESS) {
+    if (result.error == CcuSecErrorCode::SUCCESS) {
         // sessionKeyHandle (4 bytes)
         data.push_back(static_cast<uint8_t>((result.sessionKeyHandle >> 24) & 0xFF));
         data.push_back(static_cast<uint8_t>((result.sessionKeyHandle >> 16) & 0xFF));
@@ -729,7 +729,7 @@ std::vector<uint8_t> SecSomeipServer::serializeKeyResult(const KeyResult& result
     data.push_back(static_cast<uint8_t>((static_cast<uint32_t>(result.error) >> 8) & 0xFF));
     data.push_back(static_cast<uint8_t>(static_cast<uint32_t>(result.error) & 0xFF));
     
-    if (result.error == CgwSecErrorCode::SUCCESS) {
+    if (result.error == CcuSecErrorCode::SUCCESS) {
         // key 长度 (4 bytes)
         uint32_t keyLength = result.key.size();
         data.push_back(static_cast<uint8_t>((keyLength >> 24) & 0xFF));
@@ -753,7 +753,7 @@ std::vector<uint8_t> SecSomeipServer::serializeSecureDataResult(const SecureData
     data.push_back(static_cast<uint8_t>((static_cast<uint32_t>(result.error) >> 8) & 0xFF));
     data.push_back(static_cast<uint8_t>(static_cast<uint32_t>(result.error) & 0xFF));
     
-    if (result.error == CgwSecErrorCode::SUCCESS) {
+    if (result.error == CcuSecErrorCode::SUCCESS) {
         // data 长度 (4 bytes)
         uint32_t dataLength = result.data.size();
         data.push_back(static_cast<uint8_t>((dataLength >> 24) & 0xFF));
@@ -768,7 +768,7 @@ std::vector<uint8_t> SecSomeipServer::serializeSecureDataResult(const SecureData
     return data;
 }
 
-std::vector<uint8_t> SecSomeipServer::serializeErrorCode(CgwSecErrorCode code) {
+std::vector<uint8_t> SecSomeipServer::serializeErrorCode(CcuSecErrorCode code) {
     std::vector<uint8_t> data;
     data.push_back(static_cast<uint8_t>((static_cast<uint32_t>(code) >> 24) & 0xFF));
     data.push_back(static_cast<uint8_t>((static_cast<uint32_t>(code) >> 16) & 0xFF));
@@ -781,14 +781,14 @@ std::vector<uint8_t> SecSomeipServer::serializeErrorCode(CgwSecErrorCode code) {
 SeedResult SecSomeipServer::deserializeSeedResult(const std::vector<uint8_t>& data) {
     SeedResult result;
     if (data.size() < 4) {
-        result.error = CgwSecErrorCode::UNAUTHORIZED_REQUEST;
+        result.error = CcuSecErrorCode::UNAUTHORIZED_REQUEST;
         return result;
     }
     
     uint32_t errorCode = (data[0] << 24) | (data[1] << 16) | (data[2] << 8) | data[3];
-    result.error = static_cast<CgwSecErrorCode>(errorCode);
+    result.error = static_cast<CcuSecErrorCode>(errorCode);
     
-    if (result.error == CgwSecErrorCode::SUCCESS && data.size() >= 12) {
+    if (result.error == CcuSecErrorCode::SUCCESS && data.size() >= 12) {
         result.seedId = (data[4] << 24) | (data[5] << 16) | (data[6] << 8) | data[7];
         uint32_t seedLength = (data[8] << 24) | (data[9] << 16) | (data[10] << 8) | data[11];
         
@@ -962,4 +962,4 @@ std::pair<std::string, std::vector<uint8_t>> SecSomeipServer::deserializeWrapReq
     return {keyName, dataToWrap};
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

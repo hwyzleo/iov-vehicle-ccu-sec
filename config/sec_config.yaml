@@ -1,11 +1,11 @@
-# CGW-SEC 服务配置
+# CCU-SEC 服务配置
 # 安全服务参数
 se_hsm_type: "software"
 default_security_level: 1
 seed_expiration_ms: 30000
 max_seed_pool_size: 100
 
-# 统一日志配置（CGW-SEC-DSN-CR-004 / CGW-FW-SPEC设计 §4）
+# 统一日志配置（CCU-SEC-DSN-CR-004 / CCU-FW-SPEC设计 §4）
 common:
   log:
     schema_version: 1
@@ -19,7 +19,7 @@ common:
       enabled: true
     file:
       enabled: false
-      root: /var/log/cgw
+      root: /var/log/ccu
       max_file_size_mb: 20
       max_files: 5
       total_budget_mb: 100
@@ -29,7 +29,7 @@ common:
     format: standard
 
 sec:
-  # 日志服务级覆盖（CGW-SEC-DSN-CR-004 §启动与模块 Logger）
+  # 日志服务级覆盖（CCU-SEC-DSN-CR-004 §启动与模块 Logger）
   log:
     level: INFO
     modules:

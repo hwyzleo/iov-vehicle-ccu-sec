@@ -13,7 +13,7 @@
 #include "sec_someip_client.h"
 #include "config_loader.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 int main() {
     std::cout << "Simple SOME/IP Client Example" << std::endl;
@@ -53,8 +53,8 @@ int main() {
     // 测试 getSeed
     std::cout << "\n1. Testing getSeed..." << std::endl;
     auto seedResult = client.getSeed(0x01);
-    std::cout << "   Result: " << (seedResult.error == CgwSecErrorCode::SUCCESS ? "SUCCESS" : "FAILED") << std::endl;
-    if (seedResult.error == CgwSecErrorCode::SUCCESS) {
+    std::cout << "   Result: " << (seedResult.error == CcuSecErrorCode::SUCCESS ? "SUCCESS" : "FAILED") << std::endl;
+    if (seedResult.error == CcuSecErrorCode::SUCCESS) {
         std::cout << "   Seed ID: " << seedResult.seedId << std::endl;
         std::cout << "   Seed size: " << seedResult.seed.size() << " bytes" << std::endl;
     }
@@ -69,8 +69,8 @@ int main() {
     context.timestamp = 1234567890;
     
     auto sessionResult = client.deriveOtaSession(context, 0x01);
-    std::cout << "   Result: " << (sessionResult.error == CgwSecErrorCode::SUCCESS ? "SUCCESS" : "FAILED") << std::endl;
-    if (sessionResult.error == CgwSecErrorCode::SUCCESS) {
+    std::cout << "   Result: " << (sessionResult.error == CcuSecErrorCode::SUCCESS ? "SUCCESS" : "FAILED") << std::endl;
+    if (sessionResult.error == CcuSecErrorCode::SUCCESS) {
         std::cout << "   Session Key Handle: " << sessionResult.sessionKeyHandle << std::endl;
         std::cout << "   Nonce size: " << sessionResult.nonce.size() << " bytes" << std::endl;
     }

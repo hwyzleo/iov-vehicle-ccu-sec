@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
 #include "data_models.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 TEST(SeedResultTest, DefaultConstruction) {
     SeedResult result;
     EXPECT_EQ(result.seedId, 0);
     EXPECT_TRUE(result.seed.empty());
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
 }
 
 TEST(SeedInfoTest, DefaultConstruction) {
@@ -31,7 +31,7 @@ TEST(OtaSessionResultTest, DefaultConstruction) {
     OtaSessionResult result;
     EXPECT_EQ(result.sessionKeyHandle, 0);
     EXPECT_TRUE(result.nonce.empty());
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
 }
 
 TEST(SecConfigTest, DefaultConstruction) {

@@ -2,7 +2,7 @@
 #include "sec_log_adapter.h"
 #include <stdexcept>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SecSomeipProxy::SecSomeipProxy(const SomeipConfig& config) : config_(config) {
     client_ = std::make_unique<SecSomeipClient>(config);
@@ -52,7 +52,7 @@ SeedResult SecSomeipProxy::getSeed(uint8_t level) {
     return client_->getSeed(level);
 }
 
-CgwSecErrorCode SecSomeipProxy::verifyKey(uint8_t level, uint32_t seedId,
+CcuSecErrorCode SecSomeipProxy::verifyKey(uint8_t level, uint32_t seedId,
                                             const std::vector<uint8_t>& key) {
     if (!client_ || !client_->isConnected()) {
         SecLogAdapter::facade().error("sec.proxy.not_connected",
@@ -101,4 +101,4 @@ SecureDataResult SecSomeipProxy::wrapByUid(const std::vector<uint8_t>& data,
     return client_->wrapByUid(data, level);
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

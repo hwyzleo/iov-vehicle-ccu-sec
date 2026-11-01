@@ -5,7 +5,7 @@
     
     "applications": [
         {
-            "name": "cgw-sec",
+            "name": "ccu-sec",
             "id": "0x1140"
         }
     ],
@@ -24,7 +24,7 @@
         }
     ],
     
-    "routing": "cgw-sec",
+    "routing": "ccu-sec",
     
     "service-discovery": {
         "enable": "true",
@@ -59,7 +59,7 @@
         "console": "true",
         "file": {
             "enable": "true",
-            "path": "/var/log/cgw-sec/vsomeip.log"
+            "path": "/var/log/ccu-sec/vsomeip.log"
         },
         "level": "info"
     }

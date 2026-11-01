@@ -4,7 +4,7 @@
 #include "constants.h"
 #include "error_codes.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class SoftwareSeHsmTest : public ::testing::Test {
 protected:
@@ -20,7 +20,7 @@ protected:
 
 TEST_F(SoftwareSeHsmTest, GenerateSeedReturnsValidSeed) {
     auto result = hsm->generateSeed(SECURITY_LEVEL_1);
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_GT(result.seedId, 0u);
     EXPECT_EQ(result.seed.size(), SEED_SIZE);
 }
@@ -33,7 +33,7 @@ TEST_F(SoftwareSeHsmTest, GenerateSeedDifferentIds) {
 
 TEST_F(SoftwareSeHsmTest, VerifyKeySuccess) {
     auto seedResult = hsm->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     // In software mode, key == seed (XOR with 0xFF)
     std::vector<uint8_t> key(SEED_SIZE);
@@ -42,21 +42,21 @@ TEST_F(SoftwareSeHsmTest, VerifyKeySuccess) {
     }
 
     auto result = hsm->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, key, seedResult.seed);
-    EXPECT_EQ(result, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result, CcuSecErrorCode::SUCCESS);
 }
 
 TEST_F(SoftwareSeHsmTest, VerifyKeyFailureWrongKey) {
     auto seedResult = hsm->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     std::vector<uint8_t> wrongKey(SEED_SIZE, 0xAA);
     auto result = hsm->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, wrongKey, seedResult.seed);
-    EXPECT_EQ(result, CgwSecErrorCode::KEY_VERIFICATION_FAILED);
+    EXPECT_EQ(result, CcuSecErrorCode::KEY_VERIFICATION_FAILED);
 }
 
 TEST_F(SoftwareSeHsmTest, VerifyKeyFailureExpiredSeed) {
     auto seedResult = hsm->generateSeed(SECURITY_LEVEL_1);
-    ASSERT_EQ(seedResult.error, CgwSecErrorCode::SUCCESS);
+    ASSERT_EQ(seedResult.error, CcuSecErrorCode::SUCCESS);
 
     // Wait for seed to expire (30 seconds + buffer)
     // In real test, we'd mock time. For now, test with valid key.
@@ -66,25 +66,25 @@ TEST_F(SoftwareSeHsmTest, VerifyKeyFailureExpiredSeed) {
     }
 
     auto result = hsm->verifyKey(SECURITY_LEVEL_1, seedResult.seedId, key, seedResult.seed);
-    EXPECT_EQ(result, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result, CcuSecErrorCode::SUCCESS);
 }
 
 TEST_F(SoftwareSeHsmTest, DeriveKeySuccess) {
     // First store a root key
     std::vector<uint8_t> rootKey = {0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08,
                                      0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
-    hsm->storeKey(CGW_DEVICE_ROOT_KEY_NAME, rootKey);
+    hsm->storeKey(CCU_DEVICE_ROOT_KEY_NAME, rootKey);
 
     std::vector<uint8_t> context = {0x01, 0x02, 0x03, 0x04};
-    auto result = hsm->deriveKey(CGW_DEVICE_ROOT_KEY_NAME, context);
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    auto result = hsm->deriveKey(CCU_DEVICE_ROOT_KEY_NAME, context);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_EQ(result.key.size(), SESSION_KEY_SIZE);
 }
 
 TEST_F(SoftwareSeHsmTest, DeriveKeyMissingRoot) {
     std::vector<uint8_t> context = {0x01, 0x02, 0x03, 0x04};
     auto result = hsm->deriveKey("NONEXISTENT_KEY", context);
-    EXPECT_EQ(result.error, CgwSecErrorCode::DEVICE_ROOT_MISSING);
+    EXPECT_EQ(result.error, CcuSecErrorCode::DEVICE_ROOT_MISSING);
 }
 
 TEST_F(SoftwareSeHsmTest, StoreAndLoadKey) {
@@ -92,16 +92,16 @@ TEST_F(SoftwareSeHsmTest, StoreAndLoadKey) {
                                          0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10};
 
     auto storeResult = hsm->storeKey("TEST_KEY", keyMaterial);
-    EXPECT_EQ(storeResult, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(storeResult, CcuSecErrorCode::SUCCESS);
 
     auto loadResult = hsm->loadKey("TEST_KEY");
-    EXPECT_EQ(loadResult.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(loadResult.error, CcuSecErrorCode::SUCCESS);
     EXPECT_EQ(loadResult.key, keyMaterial);
 }
 
 TEST_F(SoftwareSeHsmTest, LoadKeyNotFound) {
     auto result = hsm->loadKey("NONEXISTENT_KEY");
-    EXPECT_EQ(result.error, CgwSecErrorCode::DEVICE_ROOT_MISSING);
+    EXPECT_EQ(result.error, CcuSecErrorCode::DEVICE_ROOT_MISSING);
 }
 
 TEST_F(SoftwareSeHsmTest, HasKeyTrue) {
@@ -121,10 +121,10 @@ TEST_F(SoftwareSeHsmTest, SecureStoreAndLoad) {
     std::vector<uint8_t> data = {0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF};
 
     auto storeResult = hsm->secureStore(encryptionKey, data);
-    EXPECT_EQ(storeResult, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(storeResult, CcuSecErrorCode::SUCCESS);
 
     auto loadResult = hsm->secureLoad(encryptionKey);
-    EXPECT_EQ(loadResult.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(loadResult.error, CcuSecErrorCode::SUCCESS);
     EXPECT_EQ(loadResult.data, data);
 }
 
@@ -138,7 +138,7 @@ TEST_F(SoftwareSeHsmTest, SecureLoadWrongKey) {
     std::vector<uint8_t> wrongKey = {0x10, 0x0F, 0x0E, 0x0D, 0x0C, 0x0B, 0x0A, 0x09,
                                       0x08, 0x07, 0x06, 0x05, 0x04, 0x03, 0x02, 0x01};
     auto result = hsm->secureLoad(wrongKey);
-    EXPECT_EQ(result.error, CgwSecErrorCode::SE_HSM_ACCESS_FAILED);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SE_HSM_ACCESS_FAILED);
 }
 
 TEST_F(SoftwareSeHsmTest, FactoryCreatesSoftwareHsm) {

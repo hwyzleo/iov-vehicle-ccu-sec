@@ -8,7 +8,7 @@
 #include "data_models.h"
 #include "error_codes.h"
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 class SeedKeyManager {
 public:
@@ -17,7 +17,7 @@ public:
 
     SeedResult generateSeed(uint8_t level);
 
-    CgwSecErrorCode verifyKey(uint8_t level, uint32_t seedId,
+    CcuSecErrorCode verifyKey(uint8_t level, uint32_t seedId,
                                const std::vector<uint8_t>& key);
 
     void cleanupExpiredSeeds();
@@ -40,4 +40,4 @@ private:
     uint32_t seedExpirationMs_ = 30000;
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

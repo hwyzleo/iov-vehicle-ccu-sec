@@ -3,7 +3,7 @@
 #include <random>
 #include <algorithm>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SeedKeyManager::SeedKeyManager(std::shared_ptr<SeHsmInterface> hsm)
     : hsm_(std::move(hsm)) {}
@@ -14,7 +14,7 @@ SeedResult SeedKeyManager::generateSeed(uint8_t level) {
     cleanupExpiredSeeds();
 
     auto hsmResult = hsm_->generateSeed(level);
-    if (hsmResult.error != CgwSecErrorCode::SUCCESS) {
+    if (hsmResult.error != CcuSecErrorCode::SUCCESS) {
         return hsmResult;
     }
 
@@ -31,19 +31,19 @@ SeedResult SeedKeyManager::generateSeed(uint8_t level) {
     return hsmResult;
 }
 
-CgwSecErrorCode SeedKeyManager::verifyKey(uint8_t level, uint32_t seedId,
+CcuSecErrorCode SeedKeyManager::verifyKey(uint8_t level, uint32_t seedId,
                                             const std::vector<uint8_t>& key) {
     std::lock_guard<std::mutex> lock(mutex_);
 
     auto it = seedPool_.find(seedId);
     if (it == seedPool_.end()) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     auto& entry = it->second;
 
     if (entry.consumed) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     auto now = std::chrono::steady_clock::now();
@@ -51,15 +51,15 @@ CgwSecErrorCode SeedKeyManager::verifyKey(uint8_t level, uint32_t seedId,
         now - entry.createTime).count();
     if (elapsed > seedExpirationMs_) {
         seedPool_.erase(it);
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     if (entry.level != level) {
-        return CgwSecErrorCode::KEY_VERIFICATION_FAILED;
+        return CcuSecErrorCode::KEY_VERIFICATION_FAILED;
     }
 
     auto result = hsm_->verifyKey(level, seedId, key, entry.seed);
-    if (result == CgwSecErrorCode::SUCCESS) {
+    if (result == CcuSecErrorCode::SUCCESS) {
         entry.consumed = true;
     }
 
@@ -85,4 +85,4 @@ size_t SeedKeyManager::getActiveSeedCount() const {
     return seedPool_.size();
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

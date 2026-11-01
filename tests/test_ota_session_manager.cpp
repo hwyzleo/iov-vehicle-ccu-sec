@@ -5,7 +5,7 @@
 #include "constants.h"
 #include "error_codes.h"
 
-using namespace cgw_sec;
+using namespace ccu_sec;
 
 class OtaSessionManagerTest : public ::testing::Test {
 protected:
@@ -52,7 +52,7 @@ TEST_F(OtaSessionManagerTest, DeriveSessionKeySuccess) {
     context.timestamp = 1234567890;
 
     auto result = manager->deriveSessionKey(context);
-    EXPECT_EQ(result.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result.error, CcuSecErrorCode::SUCCESS);
     EXPECT_GT(result.sessionKeyHandle, 0u);
     EXPECT_EQ(result.nonce.size(), NONCE_SIZE);
 }
@@ -90,7 +90,7 @@ TEST_F(OtaSessionManagerTest, DeriveSessionKeyMissingRoot) {
     context.timestamp = 1234567890;
 
     auto result = emptyManager.deriveSessionKey(context);
-    EXPECT_EQ(result.error, CgwSecErrorCode::OTA_ROOT_MISSING);
+    EXPECT_EQ(result.error, CcuSecErrorCode::OTA_ROOT_MISSING);
 }
 
 TEST_F(OtaSessionManagerTest, GenerateNonceLength) {
@@ -120,7 +120,7 @@ TEST_F(OtaSessionManagerTest, DeriveSessionKeyDifferentContexts) {
     auto result1 = manager->deriveSessionKey(context1);
     auto result2 = manager->deriveSessionKey(context2);
 
-    EXPECT_EQ(result1.error, CgwSecErrorCode::SUCCESS);
-    EXPECT_EQ(result2.error, CgwSecErrorCode::SUCCESS);
+    EXPECT_EQ(result1.error, CcuSecErrorCode::SUCCESS);
+    EXPECT_EQ(result2.error, CcuSecErrorCode::SUCCESS);
     EXPECT_NE(result1.sessionKeyHandle, result2.sessionKeyHandle);
 }

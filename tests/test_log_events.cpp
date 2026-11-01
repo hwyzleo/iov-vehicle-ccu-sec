@@ -5,22 +5,22 @@
 #include "constants.h"
 #include <regex>
 
-namespace cgw_sec {
+namespace ccu_sec {
 namespace {
 
 class LogEventsTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        cgw::fw::log::LogConfig config;
-        config.level = cgw::fw::log::LogLevel::kDebug;
+        ccu::fw::log::LogConfig config;
+        config.level = ccu::fw::log::LogLevel::kDebug;
 
-        auto result = SecLogAdapter::init("cgw-sec-events-test", config);
-        ASSERT_EQ(result.error, cgw::fw::log::LogError::kOk);
+        auto result = SecLogAdapter::init("ccu-sec-events-test", config);
+        ASSERT_EQ(result.error, ccu::fw::log::LogError::kOk);
     }
 };
 
 // ============================================================
-// 事件名格式验证（CGW-SEC-DSN-CR-004 §事件目录）
+// 事件名格式验证（CCU-SEC-DSN-CR-004 §事件目录）
 // 事件名使用小写点分命名
 // ============================================================
 TEST_F(LogEventsTest, EventNameFormat) {
@@ -47,7 +47,7 @@ TEST_F(LogEventsTest, EventNameFormat) {
 }
 
 // ============================================================
-// 所有模块 Logger 可调用（CGW-SEC-DSN-CR-004 §启动与模块 Logger）
+// 所有模块 Logger 可调用（CCU-SEC-DSN-CR-004 §启动与模块 Logger）
 // ============================================================
 TEST_F(LogEventsTest, AllModuleLoggersCallable) {
     SecLogAdapter::facade().info(sec_events::SERVICE_INITIALIZED,
@@ -65,49 +65,49 @@ TEST_F(LogEventsTest, AllModuleLoggersCallable) {
 }
 
 // ============================================================
-// 错误码映射验证（CGW-SEC-DSN-CR-004 §事件目录）
+// 错误码映射验证（CCU-SEC-DSN-CR-004 §事件目录）
 // ============================================================
 TEST_F(LogEventsTest, SecErrorCodes) {
-    // 验证 SEC 业务错误码 CGW-SEC-1001~1007
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SEED_GENERATION_FAILED), "SEED_GENERATION_FAILED");
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::KEY_VERIFICATION_FAILED), "KEY_VERIFICATION_FAILED");
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::OTA_ROOT_MISSING), "OTA_ROOT_MISSING");
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED), "SESSION_KEY_DERIVATION_FAILED");
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::DEVICE_ROOT_MISSING), "DEVICE_ROOT_MISSING");
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::SE_HSM_ACCESS_FAILED), "SE_HSM_ACCESS_FAILED");
-    EXPECT_EQ(errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST), "UNAUTHORIZED_REQUEST");
+    // 验证 SEC 业务错误码 CCU-SEC-1001~1007
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SEED_GENERATION_FAILED), "SEED_GENERATION_FAILED");
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::KEY_VERIFICATION_FAILED), "KEY_VERIFICATION_FAILED");
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::OTA_ROOT_MISSING), "OTA_ROOT_MISSING");
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED), "SESSION_KEY_DERIVATION_FAILED");
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::DEVICE_ROOT_MISSING), "DEVICE_ROOT_MISSING");
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::SE_HSM_ACCESS_FAILED), "SE_HSM_ACCESS_FAILED");
+    EXPECT_EQ(errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST), "UNAUTHORIZED_REQUEST");
 
     // 错误码字符串非空
-    EXPECT_FALSE(errorCodeToString(CgwSecErrorCode::SEED_GENERATION_FAILED).empty());
-    EXPECT_FALSE(errorCodeToString(CgwSecErrorCode::UNAUTHORIZED_REQUEST).empty());
+    EXPECT_FALSE(errorCodeToString(CcuSecErrorCode::SEED_GENERATION_FAILED).empty());
+    EXPECT_FALSE(errorCodeToString(CcuSecErrorCode::UNAUTHORIZED_REQUEST).empty());
 
     // 描述字符串非空
-    EXPECT_FALSE(errorCodeDescription(CgwSecErrorCode::SEED_GENERATION_FAILED).empty());
-    EXPECT_FALSE(errorCodeDescription(CgwSecErrorCode::UNAUTHORIZED_REQUEST).empty());
+    EXPECT_FALSE(errorCodeDescription(CcuSecErrorCode::SEED_GENERATION_FAILED).empty());
+    EXPECT_FALSE(errorCodeDescription(CcuSecErrorCode::UNAUTHORIZED_REQUEST).empty());
 }
 
 TEST_F(LogEventsTest, FrameworkErrorCodes) {
-    // 验证 framework 错误码（CGW-FW-0201~0205）
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kConfigInvalid), 201);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kInitFailed), 202);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kSinkFailed), 203);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kQueueOverflow), 204);
-    EXPECT_EQ(static_cast<uint32_t>(cgw::fw::log::LogError::kSensitiveViolation), 205);
+    // 验证 framework 错误码（CCU-FW-0201~0205）
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kConfigInvalid), 201);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kInitFailed), 202);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kSinkFailed), 203);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kQueueOverflow), 204);
+    EXPECT_EQ(static_cast<uint32_t>(ccu::fw::log::LogError::kSensitiveViolation), 205);
 }
 
 TEST_F(LogEventsTest, SecErrorCodeValues) {
-    // 验证 CGW-SEC-1001~1007 数值
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::SEED_GENERATION_FAILED), 1001);
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::KEY_VERIFICATION_FAILED), 1002);
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::OTA_ROOT_MISSING), 1003);
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::SESSION_KEY_DERIVATION_FAILED), 1004);
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::DEVICE_ROOT_MISSING), 1005);
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::SE_HSM_ACCESS_FAILED), 1006);
-    EXPECT_EQ(static_cast<uint32_t>(CgwSecErrorCode::UNAUTHORIZED_REQUEST), 1007);
+    // 验证 CCU-SEC-1001~1007 数值
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::SEED_GENERATION_FAILED), 1001);
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::KEY_VERIFICATION_FAILED), 1002);
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::OTA_ROOT_MISSING), 1003);
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::SESSION_KEY_DERIVATION_FAILED), 1004);
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::DEVICE_ROOT_MISSING), 1005);
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::SE_HSM_ACCESS_FAILED), 1006);
+    EXPECT_EQ(static_cast<uint32_t>(CcuSecErrorCode::UNAUTHORIZED_REQUEST), 1007);
 }
 
 // ============================================================
-// 事件字段验证（CGW-SEC-DSN-CR-004 §事件目录 / §字段白名单与零泄露）
+// 事件字段验证（CCU-SEC-DSN-CR-004 §事件目录 / §字段白名单与零泄露）
 // ============================================================
 
 TEST_F(LogEventsTest, ServiceInitializedFields) {
@@ -143,7 +143,7 @@ TEST_F(LogEventsTest, SeedGenerateFailedFields) {
          slog::f_str("security_level", "0x01"),
          slog::f_str("result", "SEED_GENERATION_FAILED"),
          slog::f_int("duration_ms", 5),
-         slog::f_str("error_code", "CGW-SEC-1001")}
+         slog::f_str("error_code", "CCU-SEC-1001")}
     );
 }
 
@@ -170,7 +170,7 @@ TEST_F(LogEventsTest, KeyVerifyFailedFields) {
          slog::f_str("operation", "verifyKey"),
          slog::f_str("result", "KEY_VERIFICATION_FAILED"),
          slog::f_int("duration_ms", 3),
-         slog::f_str("error_code", "CGW-SEC-1002")}
+         slog::f_str("error_code", "CCU-SEC-1002")}
     );
 }
 
@@ -197,7 +197,7 @@ TEST_F(LogEventsTest, OtaSessionDeriveFailedFields) {
          slog::f_str("direction", "download"),
          slog::f_str("result", "OTA_ROOT_MISSING"),
          slog::f_int("duration_ms", 10),
-         slog::f_str("error_code", "CGW-SEC-1003")}
+         slog::f_str("error_code", "CCU-SEC-1003")}
     );
 }
 
@@ -210,7 +210,7 @@ TEST_F(LogEventsTest, DeviceKeyOperationFailedFields) {
          slog::f_str("operation", "deriveByUid"),
          slog::f_str("result", "DEVICE_ROOT_MISSING"),
          slog::f_int("duration_ms", 8),
-         slog::f_str("error_code", "CGW-SEC-1005")}
+         slog::f_str("error_code", "CCU-SEC-1005")}
     );
 }
 
@@ -222,7 +222,7 @@ TEST_F(LogEventsTest, SeAccessFailedFields) {
         {slog::f_str("operation", "storeKey"),
          slog::f_str("result", "SE_HSM_ACCESS_FAILED"),
          slog::f_int("duration_ms", 15),
-         slog::f_str("error_code", "CGW-SEC-1006")}
+         slog::f_str("error_code", "CCU-SEC-1006")}
     );
 }
 
@@ -236,7 +236,7 @@ TEST_F(LogEventsTest, RequestUnauthorizedFields) {
          slog::f_str("result", "invalid_request"),
          slog::f_str("someip_service_id", "0x1140"),
          slog::f_str("someip_method_id", "0x0001"),
-         slog::f_str("error_code", "CGW-SEC-1007")}
+         slog::f_str("error_code", "CCU-SEC-1007")}
     );
 }
 
@@ -248,32 +248,32 @@ TEST_F(LogEventsTest, LogFieldRejectedFields) {
         {slog::f_str("field_name", "seed"),
          slog::f_str("caller_module", "seed_key"),
          slog::f_str("policy_result", "rejected"),
-         slog::f_str("error_code", "CGW-FW-0205")}
+         slog::f_str("error_code", "CCU-FW-0205")}
     );
 }
 
 // ============================================================
-// 敏感类型验证（CGW-SEC-DSN-CR-004 §字段白名单与零泄露）
+// 敏感类型验证（CCU-SEC-DSN-CR-004 §字段白名单与零泄露）
 // ============================================================
 
 TEST_F(LogEventsTest, SensitivityClassification) {
     // VIN/device_sn 按 Identifier 处理：默认掩码或不可逆摘要
     SecLogAdapter::facade().info("test.event",
         "Identifier field",
-        {slog::f_str("vin", "LSVAU2180N2123456", cgw::fw::log::Sensitivity::Identifier)}
+        {slog::f_str("vin", "LSVAU2180N2123456", ccu::fw::log::Sensitivity::Identifier)}
     );
 
     // 业务 payload 按 Payload 处理
     SecLogAdapter::facade().info("test.event",
         "Payload field",
-        {slog::f_str("raw_payload", "raw_data_hex", cgw::fw::log::Sensitivity::Payload)}
+        {slog::f_str("raw_payload", "raw_data_hex", ccu::fw::log::Sensitivity::Payload)}
     );
 
     // seed/key/root/session_key 按 Secret 直接拒绝
     SecLogAdapter::seed_key().info("test.event",
         "Secret field rejection",
-        {slog::f_str("seed", "0xABCD1234", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("key", "0xEF567890", cgw::fw::log::Sensitivity::Secret)}
+        {slog::f_str("seed", "0xABCD1234", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("key", "0xEF567890", ccu::fw::log::Sensitivity::Secret)}
     );
 }
 
@@ -281,14 +281,14 @@ TEST_F(LogEventsTest, SecretFieldsRejected) {
     // 验证所有密钥材料类型按 Secret 处理
     SecLogAdapter::seed_key().info("test.secret_rejection",
         "All secret types should be rejected",
-        {slog::f_str("seed", "seed_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("key", "key_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("root", "root_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("session_key", "session_key_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("key_material", "key_material_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("private_key", "private_key_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("password", "password_data", cgw::fw::log::Sensitivity::Secret),
-         slog::f_str("token", "token_data", cgw::fw::log::Sensitivity::Secret)}
+        {slog::f_str("seed", "seed_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("key", "key_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("root", "root_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("session_key", "session_key_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("key_material", "key_material_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("private_key", "private_key_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("password", "password_data", ccu::fw::log::Sensitivity::Secret),
+         slog::f_str("token", "token_data", ccu::fw::log::Sensitivity::Secret)}
     );
 
     // 验证日志可正常执行（框架拒绝 Secret 字段但不崩溃）
@@ -309,7 +309,7 @@ TEST_F(LogEventsTest, VinNotInMessage) {
     // VIN 不得拼入 message
     SecLogAdapter::facade().info("test.vin_not_in_message",
         "VIN processing result",
-        {slog::f_str("vin_hash", "masked_value", cgw::fw::log::Sensitivity::Identifier),
+        {slog::f_str("vin_hash", "masked_value", ccu::fw::log::Sensitivity::Identifier),
          slog::f_str("result", "OK")}
     );
 }
@@ -329,4 +329,4 @@ TEST_F(LogEventsTest, AllowedFieldsOnly) {
 }
 
 } // namespace
-} // namespace cgw_sec
+} // namespace ccu_sec

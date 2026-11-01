@@ -7,7 +7,7 @@
 #include "data_models.h"
 #include "error_codes.h"
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 class OtaSessionManager {
 public:
@@ -28,4 +28,4 @@ private:
     std::map<uint32_t, std::vector<uint8_t>> sessionKeys_;
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

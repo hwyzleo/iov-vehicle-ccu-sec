@@ -2,7 +2,7 @@
 #include <yaml-cpp/yaml.h>
 #include <stdexcept>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 SecConfig ConfigLoader::loadSecConfig(const std::string& path) {
     try {
@@ -85,11 +85,11 @@ SeHsmConfig ConfigLoader::loadSeHsmConfig(const std::string& path) {
     }
 }
 
-cgw::fw::log::LogConfig ConfigLoader::loadLogConfig(const std::string& path) {
-    cgw::fw::log::LogConfig log_config;
+ccu::fw::log::LogConfig ConfigLoader::loadLogConfig(const std::string& path) {
+    ccu::fw::log::LogConfig log_config;
     // 默认值
     log_config.schema_version = 1;
-    log_config.level = cgw::fw::log::LogLevel::kInfo;
+    log_config.level = ccu::fw::log::LogLevel::kInfo;
     log_config.strict = false;
     log_config.format = "standard";
 
@@ -104,7 +104,7 @@ cgw::fw::log::LogConfig ConfigLoader::loadLogConfig(const std::string& path) {
 }
 
 void ConfigLoader::parseLogConfigNode(const YAML::Node& root,
-                                      cgw::fw::log::LogConfig& log_config) {
+                                      ccu::fw::log::LogConfig& log_config) {
     // common.log.*
     if (root["common"] && root["common"]["log"]) {
         auto common_log = root["common"]["log"];
@@ -113,7 +113,7 @@ void ConfigLoader::parseLogConfigNode(const YAML::Node& root,
             log_config.schema_version = common_log["schema_version"].as<uint32_t>();
         }
         if (common_log["level"]) {
-            log_config.level = cgw::fw::log::logLevelFromString(common_log["level"].as<std::string>());
+            log_config.level = ccu::fw::log::logLevelFromString(common_log["level"].as<std::string>());
         }
         if (common_log["strict"]) {
             log_config.strict = common_log["strict"].as<bool>();
@@ -181,20 +181,20 @@ void ConfigLoader::parseLogConfigNode(const YAML::Node& root,
         auto sec_log = root["sec"]["log"];
 
         if (sec_log["level"]) {
-            log_config.level = cgw::fw::log::logLevelFromString(sec_log["level"].as<std::string>());
+            log_config.level = ccu::fw::log::logLevelFromString(sec_log["level"].as<std::string>());
         }
 
-        // module-level overrides (CGW-SEC-DSN-CR-004 §启动与模块 Logger)
+        // module-level overrides (CCU-SEC-DSN-CR-004 §启动与模块 Logger)
         if (sec_log["modules"]) {
             auto modules = sec_log["modules"];
             for (auto it = modules.begin(); it != modules.end(); ++it) {
                 std::string mod_name = it->first.as<std::string>();
                 std::string mod_level = it->second.as<std::string>();
                 log_config.module_levels[mod_name] =
-                    cgw::fw::log::logLevelFromString(mod_level);
+                    ccu::fw::log::logLevelFromString(mod_level);
             }
         }
     }
 }
 
-} // namespace cgw_sec
+} // namespace ccu_sec

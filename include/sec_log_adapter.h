@@ -1,13 +1,13 @@
 #pragma once
 
 /**
- * CGW-SEC 日志适配器
+ * CCU-SEC 日志适配器
  *
- * 封装 cgw-framework-log 的初始化和模块 Logger 管理。
+ * 封装 ccu-framework-log 的初始化和模块 Logger 管理。
  * 业务模块仅使用 SecLogAdapter 提供的模块 Logger 和 slog:: 字段构造器，
  * 禁止直接调用 spdlog/syslog 或自行打开日志文件。
  *
- * 模块划分（CGW-SEC-DSN-CR-004 §启动与模块 Logger）：
+ * 模块划分（CCU-SEC-DSN-CR-004 §启动与模块 Logger）：
  * - facade:      SOME/IP 入站方法、调用方和响应结果
  * - seed_key:    getSeed / verifyKey 操作状态，仅记录非密钥元数据
  * - ota_session: OTA 会话密钥派生操作、方向和结果
@@ -21,10 +21,10 @@
 #include <string>
 #include <cstdint>
 
-namespace cgw_sec {
+namespace ccu_sec {
 
 // ============================================================
-// SEC 事件名常量（CGW-SEC-DSN-CR-004 §事件目录）
+// SEC 事件名常量（CCU-SEC-DSN-CR-004 §事件目录）
 // ============================================================
 namespace sec_events {
 // Service lifecycle
@@ -51,39 +51,39 @@ constexpr const char* LOG_FIELD_REJECTED = "sec.log.field.rejected";
 // 便捷字段构造器 - 减少业务代码中的冗长写法
 // ============================================================
 namespace slog {
-inline cgw::fw::log::Field f_str(const std::string& key, const std::string& val,
-                                  cgw::fw::log::Sensitivity s = cgw::fw::log::Sensitivity::Normal) {
-    return cgw::fw::log::Field(key, cgw::fw::log::FieldValue::makeString(val), s);
+inline ccu::fw::log::Field f_str(const std::string& key, const std::string& val,
+                                  ccu::fw::log::Sensitivity s = ccu::fw::log::Sensitivity::Normal) {
+    return ccu::fw::log::Field(key, ccu::fw::log::FieldValue::makeString(val), s);
 }
-inline cgw::fw::log::Field f_int(const std::string& key, int64_t val) {
-    return cgw::fw::log::Field(key, cgw::fw::log::FieldValue::makeInt(val));
+inline ccu::fw::log::Field f_int(const std::string& key, int64_t val) {
+    return ccu::fw::log::Field(key, ccu::fw::log::FieldValue::makeInt(val));
 }
-inline cgw::fw::log::Field f_bool(const std::string& key, bool val) {
-    return cgw::fw::log::Field(key, cgw::fw::log::FieldValue::makeBool(val));
+inline ccu::fw::log::Field f_bool(const std::string& key, bool val) {
+    return ccu::fw::log::Field(key, ccu::fw::log::FieldValue::makeBool(val));
 }
-inline cgw::fw::log::Field f_double(const std::string& key, double val) {
-    return cgw::fw::log::Field(key, cgw::fw::log::FieldValue::makeDouble(val));
+inline ccu::fw::log::Field f_double(const std::string& key, double val) {
+    return ccu::fw::log::Field(key, ccu::fw::log::FieldValue::makeDouble(val));
 }
 } // namespace slog
 
 // ============================================================
-// SecLogAdapter - 封装 cgw-framework-log 的初始化和模块 Logger
+// SecLogAdapter - 封装 ccu-framework-log 的初始化和模块 Logger
 // ============================================================
 class SecLogAdapter {
 public:
     /// 初始化日志系统（在 main.cpp 中调用一次）
-    static cgw::fw::log::InitResult init(
+    static ccu::fw::log::InitResult init(
         const std::string& service,
-        const cgw::fw::log::LogConfig& config
+        const ccu::fw::log::LogConfig& config
     );
 
     /// 获取各模块的 Logger 实例
-    static cgw::fw::log::Logger facade();
-    static cgw::fw::log::Logger seed_key();
-    static cgw::fw::log::Logger ota_session();
-    static cgw::fw::log::Logger root_store();
-    static cgw::fw::log::Logger device_key();
-    static cgw::fw::log::Logger se_adapter();
+    static ccu::fw::log::Logger facade();
+    static ccu::fw::log::Logger seed_key();
+    static ccu::fw::log::Logger ota_session();
+    static ccu::fw::log::Logger root_store();
+    static ccu::fw::log::Logger device_key();
+    static ccu::fw::log::Logger se_adapter();
 
     /// 是否已初始化
     static bool isInitialized();
@@ -92,4 +92,4 @@ private:
     static bool s_initialized;
 };
 
-} // namespace cgw_sec
+} // namespace ccu_sec

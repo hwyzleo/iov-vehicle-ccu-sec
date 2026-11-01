@@ -56,7 +56,7 @@ ctest --output-on-failure
 
 1. 构建成功完成
 2. 所有测试通过
-3. 可执行文件 `cgw_sec` 生成于 build 目录
+3. 可执行文件 `ccu_sec` 生成于 build 目录
 
 ## 故障排除
 

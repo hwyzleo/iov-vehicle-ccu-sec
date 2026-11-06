@@ -1,0 +1,3 @@
+# NEGATIVE: only the sec: root is allowed
+log:
+  level: INFO

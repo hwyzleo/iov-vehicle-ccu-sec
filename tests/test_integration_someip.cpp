@@ -14,23 +14,28 @@ using namespace ccu_sec;
 class SomeipIntegrationTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 构建配置文件的绝对路径
+        // 统一配置（开发夹具）
         std::string sourceDir = SOURCE_DIR;
-        std::string secConfigPath = sourceDir + "/config/sec_config.yaml";
-        std::string someipConfigPath = sourceDir + "/config/someip_config.yaml";
-        std::string seHsmConfigPath = sourceDir + "/config/se_hsm_config.yaml";
-        
-        // 加载配置
-        secConfig_ = ConfigLoader::loadSecConfig(secConfigPath);
-        someipConfig_ = ConfigLoader::loadSomeipConfig(someipConfigPath);
-        seHsmConfig_ = ConfigLoader::loadSeHsmConfig(seHsmConfigPath);
-        
+        auto unified = ConfigLoader::loadUnifiedConfig(
+            sourceDir + "/config/dev/sec.yaml",
+            sourceDir + "/config/dev/common.yaml");
+
+        secConfig_ = unified.security;
+        someipConfig_ = unified.someip;
+        seHsmConfig_ = unified.se_hsm;
+
         // 创建服务
         service_ = std::make_shared<SecSomeipService>(secConfig_, someipConfig_, seHsmConfig_);
-        
+
+        // 生产初始化不生成根密钥；测试夹具显式注入逻辑根材料。
+        std::vector<uint8_t> ota_root(32, 0x42);
+        std::vector<uint8_t> device_root(32, 0x42);
+        service_->provisionTestKey(OTA_VEHICLE_ROOT_KEY_NAME, ota_root);
+        service_->provisionTestKey(CCU_DEVICE_ROOT_KEY_NAME, device_root);
+
         // 创建服务端
         server_ = std::make_unique<SecSomeipServer>(service_, someipConfig_);
-        
+
         // 创建客户端
         client_ = std::make_unique<SecSomeipClient>(someipConfig_);
     }

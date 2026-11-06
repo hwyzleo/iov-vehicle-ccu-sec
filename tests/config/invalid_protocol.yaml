@@ -1,0 +1,8 @@
+# NEGATIVE: endpoint protocol must be TCP or UDP
+sec:
+  someip:
+    endpoint:
+      port: 51140
+      protocol: SCTP
+  se_hsm:
+    type: software

@@ -19,8 +19,10 @@ int main() {
     std::cout << "Simple SOME/IP Client Example" << std::endl;
     std::cout << "==============================" << std::endl;
     
-    // 加载配置
-    auto someipConfig = ConfigLoader::loadSomeipConfig("config/someip_config.yaml");
+    // 加载统一配置（开发夹具）：仅取 sec.someip 子树
+    auto unified = ConfigLoader::loadUnifiedConfig("config/dev/sec.yaml",
+                                                   "config/dev/common.yaml");
+    auto someipConfig = unified.someip;
     
     // 创建客户端
     SecSomeipClient client(someipConfig);

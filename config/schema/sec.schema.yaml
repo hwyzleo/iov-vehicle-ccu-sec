@@ -1,0 +1,189 @@
+# =============================================================================
+# config/schema/sec.schema.yaml - CCU-SEC unified sec.yaml schema
+# (CCU-SEC-DSN-CR-005 §5.3)
+# =============================================================================
+# JSON Schema Draft-07, consumed by CCU-BUILD (same locked version as the
+# installed schema copy) and by ci/verify-config-schema.py.
+#
+# Requirements:
+#   * Only the service root sec: is allowed; top-level common: is rejected.
+#   * Pre-migration root nodes (se_hsm_type/service_id/type/key_files/...) are
+#     rejected through additionalProperties:false instead of being ignored.
+#   * Types, required fields, enums, integer ranges, Service/Instance/Method
+#     IDs and the endpoint port are checked for the complete sec: subtree.
+#   * No secret/provisioning fields, no key_files, no /tmp security store:
+#     unknown fields are rejected everywhere and known secret names are
+#     impossible to express.
+#   * sec.se_hsm.type enum is intentionally limited to the adapters that
+#     exist in this release: unconfigured (safe install placeholder) and
+#     software (explicit non-production test fixture). A production adapter
+#     must be added by its own SE/HSM adapter CR; until then
+#     verify-config-schema.py --profile release rejects both values.
+#   * No top-level common: and no log widening: US-006 zero-leak rules stay
+#     enforced by the framework logger and the release secret scan.
+# =============================================================================
+$schema: "http://json-schema.org/draft-07/schema#"
+$id: "https://ccu/sec.schema.yaml"
+title: CCU-SEC unified sec.yaml
+description: "CCU-SEC service configuration contract (sec: subtree only)."
+type: object
+additionalProperties: false
+required: [sec]
+
+definitions:
+  log_level:
+    type: string
+    enum: [TRACE, DEBUG, INFO, WARN, ERROR, FATAL, OFF]
+
+  log_config:
+    type: object
+    additionalProperties: false
+    properties:
+      level:
+        $ref: "#/definitions/log_level"
+      modules:
+        type: object
+        additionalProperties: false
+        properties:
+          facade:
+            $ref: "#/definitions/log_level"
+          seed_key:
+            $ref: "#/definitions/log_level"
+          ota_session:
+            $ref: "#/definitions/log_level"
+          root_store:
+            $ref: "#/definitions/log_level"
+          device_key:
+            $ref: "#/definitions/log_level"
+          se_adapter:
+            $ref: "#/definitions/log_level"
+
+  security_config:
+    type: object
+    additionalProperties: false
+    properties:
+      default_security_level:
+        type: integer
+        minimum: 1
+        maximum: 255
+      seed_expiration_ms:
+        type: integer
+        minimum: 1
+        maximum: 3600000
+      max_seed_pool_size:
+        type: integer
+        minimum: 1
+        maximum: 4096
+
+  method_entry:
+    type: object
+    additionalProperties: false
+    required: [method_id]
+    properties:
+      method_id:
+        type: integer
+        minimum: 1
+        maximum: 32767
+
+  methods_config:
+    type: object
+    additionalProperties: false
+    properties:
+      get_seed:
+        $ref: "#/definitions/method_entry"
+      verify_key:
+        $ref: "#/definitions/method_entry"
+      derive_ota_session:
+        $ref: "#/definitions/method_entry"
+      derive_by_uid:
+        $ref: "#/definitions/method_entry"
+      wrap_by_uid:
+        $ref: "#/definitions/method_entry"
+
+  endpoint_config:
+    type: object
+    additionalProperties: false
+    properties:
+      port:
+        type: integer
+        minimum: 1
+        maximum: 65535
+      protocol:
+        type: string
+        enum: [TCP, UDP]
+      unicast:
+        type: string
+        minLength: 1
+
+  service_discovery_config:
+    type: object
+    additionalProperties: false
+    properties:
+      enabled:
+        type: boolean
+      mode:
+        type: string
+        enum: [static, dynamic]
+      multicast_address:
+        type: string
+        minLength: 1
+      port:
+        type: integer
+        minimum: 1
+        maximum: 65535
+
+  someip_config:
+    type: object
+    additionalProperties: false
+    properties:
+      application_name:
+        type: string
+        const: ccu-sec
+      service_id:
+        type: integer
+        minimum: 1
+        maximum: 65535
+      instance_id:
+        type: integer
+        minimum: 0
+        maximum: 65535
+      methods:
+        $ref: "#/definitions/methods_config"
+      endpoint:
+        $ref: "#/definitions/endpoint_config"
+      service_discovery:
+        $ref: "#/definitions/service_discovery_config"
+
+  adapter_config:
+    type: object
+    additionalProperties:
+      type: [string, integer, boolean]
+
+  se_hsm_config:
+    type: object
+    additionalProperties: false
+    required: [type]
+    properties:
+      type:
+        type: string
+        enum: [unconfigured, software]
+      adapter:
+        $ref: "#/definitions/adapter_config"
+
+  sec_config:
+    type: object
+    additionalProperties: false
+    required: [security, someip, se_hsm]
+    properties:
+      log:
+        $ref: "#/definitions/log_config"
+      security:
+        $ref: "#/definitions/security_config"
+      someip:
+        $ref: "#/definitions/someip_config"
+      se_hsm:
+        $ref: "#/definitions/se_hsm_config"
+
+properties:
+  sec:
+    $ref: "#/definitions/sec_config"

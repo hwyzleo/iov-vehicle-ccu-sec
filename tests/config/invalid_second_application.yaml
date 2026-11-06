@@ -1,0 +1,6 @@
+# NEGATIVE: one process must not create a second vsomeip application
+sec:
+  someip:
+    application_name: ccu-sec-client
+  se_hsm:
+    type: software

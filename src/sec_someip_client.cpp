@@ -87,6 +87,10 @@ void SecSomeipClient::initializeApplication() {
         throw std::runtime_error("Failed to get vsomeip runtime");
     }
     
+    // 注意（CCU-SEC-DSN-CR-005 §5.4）：本类是非生产侧的 SEC client/proxy，
+    // 只由测试、examples 与调用方进程使用。生产 daemon（ccu_sec）只创建
+    // 唯一的 ccu-sec provider application，不会在同一进程内同时创建
+    // ccu-sec-client 与 ccu-sec。
     application_ = runtime_->create_application("ccu-sec-client");
     if (!application_) {
         throw std::runtime_error("Failed to create vsomeip application");

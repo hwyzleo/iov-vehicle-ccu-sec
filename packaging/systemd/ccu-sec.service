@@ -1,0 +1,40 @@
+# =============================================================================
+# packaging/systemd/ccu-sec.service - CCU-SEC baseline unit
+# (CCU-SEC-DSN-CR-005 §6.1)
+# =============================================================================
+# CCU-SEC owns this baseline unit and installs it through the
+# ccu-sec-runtime component. Platform-specific values (User/Group, capability,
+# SE/HSM device nodes, memory/task/fd limits, enable policy and the vsomeip
+# platform environment) are fixed by the CCU-BUILD Platform Manifest or an
+# authorized drop-in; the baseline must not default to root.
+#
+# /etc/ccu is read-only. /var/lib/ccu/sec is the only writable path and may
+# only hold approved NON-SECRET adapter state (preserved across deploy and
+# rollback); seed/root/session keys, nonces and key material never live there.
+#
+# SEC is a provider for CCU-DIAG / FOTA: the baseline must NOT order against
+# consumers (no After=/Wants= for ccu-diag/ccu-fota, no Requires=). Consumers
+# express the direction themselves.
+#
+# VSOMEIP_CONFIGURATION / VSOMEIP_APPLICATION_NAME=ccu-sec / shared vsomeip
+# JSON are platform runtime assets and are intentionally NOT hard-coded here.
+# =============================================================================
+[Unit]
+Description=CCU Security Service
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/ccu_sec
+Restart=on-failure
+RestartSec=2s
+# Must be >= the measured bounded shutdown budget (SIGTERM -> stop()).
+TimeoutStopSec=30s
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/ccu/sec
+
+[Install]
+WantedBy=multi-user.target

@@ -37,14 +37,18 @@ struct OtaSessionResult {
     CcuSecErrorCode error = CcuSecErrorCode::SUCCESS;
 };
 
+// Security parameters (CCU-SEC-DSN-CR-005 §5.1: sec.security)
 struct SecConfig {
-    std::string seHsmType;
     uint8_t defaultSecurityLevel = 0;
     uint32_t seedExpirationMs = 0;
     uint32_t maxSeedPoolSize = 0;
 };
 
+// SOME/IP provider parameters (CCU-SEC-DSN-CR-005 §5.1: sec.someip).
+// Service/Instance/Method IDs and endpoint stay anchored to the SOME/IP
+// Service Registry (SSOT); the unified config never re-assigns them.
 struct SomeipConfig {
+    std::string applicationName;
     uint16_t serviceId = 0;
     uint16_t instanceId = 0;
     uint16_t getSeedMethodId = 0;
@@ -52,12 +56,22 @@ struct SomeipConfig {
     uint16_t deriveOtaSessionMethodId = 0;
     uint16_t deriveByUidMethodId = 0;
     uint16_t wrapByUidMethodId = 0;
+    uint16_t endpointPort = 0;
+    std::string endpointProtocol;
+    std::string endpointUnicast;
+    bool serviceDiscoveryEnabled = false;
+    std::string serviceDiscoveryMode;
+    std::string serviceDiscoveryMulticastAddress;
+    uint16_t serviceDiscoveryPort = 0;
 };
 
+// SE/HSM adapter selection (CCU-SEC-DSN-CR-005 §5.1/§5.2: sec.se_hsm).
+// Only non-secret adapter parameters are carried by the release config;
+// logical roots (OTA_VEHICLE_ROOT / CCU_DEVICE_ROOT / DIAG_SEEDKEY_SECRET)
+// are resolved through the adapter by keyName, never through this file.
 struct SeHsmConfig {
     std::string type;
-    std::string storagePath;
-    std::map<std::string, std::string> keyFiles;
+    std::map<std::string, std::string> adapter;
 };
 
 } // namespace ccu_sec

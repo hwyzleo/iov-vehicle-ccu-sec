@@ -12,7 +12,6 @@ protected:
     void SetUp() override {
         SeHsmConfig config;
         config.type = "software";
-        config.storagePath = "/tmp/test_security_guard";
         hsm = std::shared_ptr<SeHsmInterface>(SeHsmFactory::create(config).release());
         guard = std::make_unique<SecurityGuard>(hsm);
     }

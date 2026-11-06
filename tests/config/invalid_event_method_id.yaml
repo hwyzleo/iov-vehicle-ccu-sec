@@ -1,0 +1,8 @@
+# NEGATIVE: 0x8000+ is the event segment, not a method ID
+sec:
+  someip:
+    methods:
+      get_seed:
+        method_id: 0x8001
+  se_hsm:
+    type: software

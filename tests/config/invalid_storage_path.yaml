@@ -1,0 +1,5 @@
+# NEGATIVE: storage_path is not part of the release config
+sec:
+  se_hsm:
+    type: software
+    storage_path: /var/lib/ccu/sec/store

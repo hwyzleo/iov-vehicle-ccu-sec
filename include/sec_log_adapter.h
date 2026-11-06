@@ -29,6 +29,10 @@ namespace ccu_sec {
 namespace sec_events {
 // Service lifecycle
 constexpr const char* SERVICE_INITIALIZED = "sec.service.initialized";
+// Security capability readiness (CCU-SEC-DSN-CR-005 §6.2): process alive is
+// NOT security-ready; never report health for an unconfigured/non-production
+// SE/HSM state.
+constexpr const char* SECURITY_NOT_READY = "sec.service.security_not_ready";
 // Seed/Key
 constexpr const char* SEED_GENERATED         = "sec.seed.generated";
 constexpr const char* SEED_GENERATE_FAILED   = "sec.seed.generate.failed";

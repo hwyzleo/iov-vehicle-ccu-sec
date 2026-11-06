@@ -1,4 +1,5 @@
 #include "sec_someip_server.h"
+#include "constants.h"
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -24,8 +25,12 @@ void SecSomeipServer::initializeApplication() {
         throw std::runtime_error("Failed to get vsomeip runtime");
     }
     
-    // 创建应用程序
-    application_ = runtime_->create_application("ccu-sec");
+    // 创建应用程序：生产进程只使用唯一的 ccu-sec application
+    // （CCU-SEC-DSN-CR-005 §5.4），名称由统一配置提供，缺省回落常量。
+    const std::string application_name =
+        config_.applicationName.empty() ? std::string(SEC_APPLICATION_NAME)
+                                        : config_.applicationName;
+    application_ = runtime_->create_application(application_name);
     if (!application_) {
         throw std::runtime_error("Failed to create vsomeip application");
     }

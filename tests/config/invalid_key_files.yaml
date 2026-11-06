@@ -1,0 +1,6 @@
+# NEGATIVE: key_files plain-file key mapping bypass (BUILD-REQ-005)
+sec:
+  se_hsm:
+    type: software
+    key_files:
+      OTA_VEHICLE_ROOT: keys/ota_vehicle_root.bin

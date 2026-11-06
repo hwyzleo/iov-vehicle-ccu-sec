@@ -1,0 +1,60 @@
+# =============================================================================
+# config/dev/sec.yaml - CCU-SEC 开发夹具（统一服务配置）
+# =============================================================================
+# 仅用于本地开发/测试，不进入 ccu-sec-runtime install component，也不得作为
+# 平台 overlay 或 release 包内容。在 config/sec.default.yaml 的安全默认之上
+# 提供开发期非生产值：software SE/HSM 夹具与平台网络参数。
+#
+# 使用方式（源码树外运行，验证不依赖 WorkingDirectory）：
+#   ./build/ccu_sec --sec-config config/dev/sec.yaml \
+#                   --common-config config/dev/common.yaml \
+#                   --vsomeip-config config/dev/vsomeip.json
+#
+# 注意：se_hsm.type: software 只在显式非生产构建
+# （-DCCU_SEC_ENABLE_SOFTWARE_HSM=ON）下可用；生产 release profile 会拒绝。
+# =============================================================================
+sec:
+  log:
+    level: INFO
+    modules:
+      facade: INFO
+      seed_key: INFO
+      ota_session: INFO
+      root_store: INFO
+      device_key: INFO
+      se_adapter: INFO
+
+  security:
+    default_security_level: 1
+    seed_expiration_ms: 30000
+    max_seed_pool_size: 100
+
+  someip:
+    application_name: ccu-sec
+    service_id: 0x1140
+    instance_id: 0x0001
+    methods:
+      get_seed:
+        method_id: 0x0001
+      verify_key:
+        method_id: 0x0002
+      derive_ota_session:
+        method_id: 0x0003
+      derive_by_uid:
+        method_id: 0x0004
+      wrap_by_uid:
+        method_id: 0x0005
+    endpoint:
+      port: 51140
+      protocol: TCP
+      unicast: "127.0.0.1"
+    service_discovery:
+      enabled: true
+      mode: static
+      multicast_address: "239.0.0.1"
+      port: 30490
+
+  # 非生产测试夹具：软件 SE/HSM。量产必须由平台文件选择已批准 adapter。
+  se_hsm:
+    type: software
+    adapter: {}

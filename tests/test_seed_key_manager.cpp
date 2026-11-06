@@ -12,7 +12,6 @@ protected:
     void SetUp() override {
         SeHsmConfig config;
         config.type = "software";
-        config.storagePath = "/tmp/test_seed_key_mgr";
         std::shared_ptr<SeHsmInterface> hsm(SeHsmFactory::create(config).release());
         manager = std::make_unique<SeedKeyManager>(std::move(hsm));
     }

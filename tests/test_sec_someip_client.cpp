@@ -9,9 +9,12 @@ using namespace ccu_sec;
 class SecSomeipClientTest : public ::testing::Test {
 protected:
     void SetUp() override {
+        // 统一配置（开发夹具）：仅取 sec.someip 子树构造客户端配置。
         std::string sourceDir = SOURCE_DIR;
-        std::string someipConfigPath = sourceDir + "/config/someip_config.yaml";
-        someipConfig_ = ConfigLoader::loadSomeipConfig(someipConfigPath);
+        auto unified = ConfigLoader::loadUnifiedConfig(
+            sourceDir + "/config/dev/sec.yaml",
+            sourceDir + "/config/dev/common.yaml");
+        someipConfig_ = unified.someip;
         client_ = std::make_unique<SecSomeipClient>(someipConfig_);
     }
     

@@ -1,0 +1,6 @@
+# NEGATIVE: /tmp must never be a production security store
+sec:
+  se_hsm:
+    type: software
+    adapter:
+      device_path: /tmp/ccu_sec_se_hsm

@@ -1,0 +1,6 @@
+# NEGATIVE: unknown sec.* sub-key (typo / drifted name)
+sec:
+  security:
+    seed_expiry_ms: 100
+  se_hsm:
+    type: software

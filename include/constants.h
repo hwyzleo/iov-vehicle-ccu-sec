@@ -19,6 +19,18 @@ namespace ccu_sec {
 constexpr uint16_t SEC_SERVICE_ID = 0x1140;
 constexpr uint16_t SEC_INSTANCE_ID = 0x0001;
 constexpr uint16_t SEC_SOMEIP_PORT = 51140;
+constexpr const char* SEC_SOMEIP_PROTOCOL = "TCP";
+
+// ====================================================================
+// Unified release configuration paths (CCU-SEC-DSN-CR-005 §5.4)
+// ====================================================================
+// Production daemon only uses these defaults; --sec-config / --common-config
+// are explicit development/test overrides.
+constexpr const char* SEC_DEFAULT_CONFIG_PATH = "/etc/ccu/conf.d/sec.yaml";
+constexpr const char* SEC_DEFAULT_COMMON_CONFIG_PATH = "/etc/ccu/common.yaml";
+
+// 本进程唯一的 vsomeip application（CCU-SEC-DSN-CR-005 §5.4）
+constexpr const char* SEC_APPLICATION_NAME = "ccu-sec";
 
 // ====================================================================
 // Method ID 分配约定

@@ -1,106 +1,301 @@
 #include "config_loader.h"
+#include "constants.h"
 #include <yaml-cpp/yaml.h>
 #include <stdexcept>
+#include <initializer_list>
+#include <string>
 
 namespace ccu_sec {
 
-SecConfig ConfigLoader::loadSecConfig(const std::string& path) {
+namespace {
+
+YAML::Node loadYamlFile(const std::string& file_path, const char* what) {
     try {
-        YAML::Node config = YAML::LoadFile(path);
-        SecConfig secConfig;
-
-        if (config["se_hsm_type"]) {
-            secConfig.seHsmType = config["se_hsm_type"].as<std::string>();
-        }
-        if (config["default_security_level"]) {
-            secConfig.defaultSecurityLevel = config["default_security_level"].as<uint8_t>();
-        }
-        if (config["seed_expiration_ms"]) {
-            secConfig.seedExpirationMs = config["seed_expiration_ms"].as<uint32_t>();
-        }
-        if (config["max_seed_pool_size"]) {
-            secConfig.maxSeedPoolSize = config["max_seed_pool_size"].as<uint32_t>();
-        }
-
-        return secConfig;
-    } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to load SEC config: " + std::string(e.what()));
+        return YAML::LoadFile(file_path);
+    } catch (const YAML::Exception& e) {
+        throw std::runtime_error(
+            "Failed to load " + std::string(what) + " (" + file_path + "): " +
+            std::string(e.what()));
     }
 }
 
-SomeipConfig ConfigLoader::loadSomeipConfig(const std::string& path) {
-    try {
-        YAML::Node config = YAML::LoadFile(path);
-        SomeipConfig someipConfig;
-
-        if (config["service_id"]) {
-            someipConfig.serviceId = config["service_id"].as<uint16_t>();
-        }
-        if (config["instance_id"]) {
-            someipConfig.instanceId = config["instance_id"].as<uint16_t>();
-        }
-        if (config["get_seed_method_id"]) {
-            someipConfig.getSeedMethodId = config["get_seed_method_id"].as<uint16_t>();
-        }
-        if (config["verify_key_method_id"]) {
-            someipConfig.verifyKeyMethodId = config["verify_key_method_id"].as<uint16_t>();
-        }
-        if (config["derive_ota_session_method_id"]) {
-            someipConfig.deriveOtaSessionMethodId = config["derive_ota_session_method_id"].as<uint16_t>();
-        }
-        if (config["derive_by_uid_method_id"]) {
-            someipConfig.deriveByUidMethodId = config["derive_by_uid_method_id"].as<uint16_t>();
-        }
-        if (config["wrap_by_uid_method_id"]) {
-            someipConfig.wrapByUidMethodId = config["wrap_by_uid_method_id"].as<uint16_t>();
-        }
-
-        return someipConfig;
-    } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to load SOME/IP config: " + std::string(e.what()));
+void requireMap(const YAML::Node& node, const std::string& context) {
+    if (!node.IsMap()) {
+        throw std::runtime_error(context + " must be a mapping");
     }
 }
 
-SeHsmConfig ConfigLoader::loadSeHsmConfig(const std::string& path) {
-    try {
-        YAML::Node config = YAML::LoadFile(path);
-        SeHsmConfig seHsmConfig;
+void rejectUnknownKeys(const YAML::Node& node,
+                       std::initializer_list<const char*> allowed,
+                       const std::string& context) {
+    requireMap(node, context);
+    for (auto it = node.begin(); it != node.end(); ++it) {
+        const std::string key = it->first.as<std::string>();
+        bool ok = false;
+        for (const char* candidate : allowed) {
+            if (key == candidate) {
+                ok = true;
+                break;
+            }
+        }
+        if (!ok) {
+            throw std::runtime_error("unknown config key: " + context + "." + key);
+        }
+    }
+}
 
-        if (config["type"]) {
-            seHsmConfig.type = config["type"].as<std::string>();
+void requireMethodIdRange(uint16_t method_id, const std::string& context) {
+    if (method_id < METHOD_ID_MIN || method_id > METHOD_ID_MAX) {
+        throw std::runtime_error(
+            context + " must be in 0x0001-0x7FFF (method segment)");
+    }
+}
+
+uint16_t parseMethodId(const YAML::Node& methods,
+                       const char* name,
+                       uint16_t fallback,
+                       const std::string& context) {
+    const YAML::Node entry = methods[name];
+    if (!entry) {
+        return fallback;
+    }
+    requireMap(entry, context + "." + name);
+    rejectUnknownKeys(entry, {"method_id"}, context + "." + name);
+    if (!entry["method_id"]) {
+        throw std::runtime_error(context + "." + name + ".method_id is required");
+    }
+    const uint16_t method_id = entry["method_id"].as<uint16_t>();
+    requireMethodIdRange(method_id, context + "." + name + ".method_id");
+    return method_id;
+}
+
+// CCU-SEC-DSN-CR-005 §5.3: release config must never carry secret/
+// provisioning fields or a plain-file key mapping bypass.
+bool isForbiddenConfigKey(const std::string& key) {
+    static const char* const kForbidden[] = {
+        "key_files", "key_file", "keyfiles", "storage_path",
+        "storage-path", "secret", "secrets", "seed", "session_key",
+        "session-key", "private_key", "private-key", "key_material",
+        "token", "password", "credentials", "cert", "certificate",
+        "provisioning",
+    };
+    for (const char* forbidden : kForbidden) {
+        if (key == forbidden) {
+            return true;
         }
-        if (config["storage_path"]) {
-            seHsmConfig.storagePath = config["storage_path"].as<std::string>();
+    }
+    return false;
+}
+
+// /tmp must never be proposed as a production security store.
+bool isForbiddenStorageLocation(const std::string& value) {
+    return value == "/tmp" || value.rfind("/tmp/", 0) == 0;
+}
+
+} // namespace
+
+UnifiedSecConfig ConfigLoader::loadUnifiedConfig(
+    const std::string& sec_config_path,
+    const std::string& common_config_path) {
+
+    YAML::Node root = loadYamlFile(sec_config_path, "unified SEC config");
+    requireMap(root, "unified SEC config");
+
+    // CCU-SEC-BUILD-REQ-003: the service file must never inline common:.
+    if (root["common"]) {
+        throw std::runtime_error(
+            "unified SEC config must not declare a top-level 'common:' key "
+            "(common.log.* is provided by CCU-BUILD /etc/ccu/common.yaml)");
+    }
+    // Only sec: is allowed; pre-migration root nodes (se_hsm_type,
+    // service_id, type, key_files, ...) are rejected instead of being
+    // silently ignored after migration.
+    rejectUnknownKeys(root, {"sec"}, "sec.yaml");
+
+    const YAML::Node sec = root["sec"];
+    if (!sec) {
+        throw std::runtime_error("unified SEC config is missing required 'sec:' root");
+    }
+    rejectUnknownKeys(sec, {"log", "security", "someip", "se_hsm"}, "sec");
+
+    UnifiedSecConfig config;
+
+    // ---------------------------------------------------------------
+    // sec.security - security parameters (CCU-SEC-DSN-CR-005 §5.1)
+    // ---------------------------------------------------------------
+    config.security.defaultSecurityLevel = SECURITY_LEVEL_1;
+    config.security.seedExpirationMs = SEED_EXPIRATION_MS;
+    config.security.maxSeedPoolSize = MAX_SEED_POOL_SIZE;
+    if (const YAML::Node security = sec["security"]) {
+        rejectUnknownKeys(security,
+                          {"default_security_level", "seed_expiration_ms",
+                           "max_seed_pool_size"},
+                          "sec.security");
+        config.security.defaultSecurityLevel =
+            security["default_security_level"].as<uint8_t>(
+                config.security.defaultSecurityLevel);
+        config.security.seedExpirationMs =
+            security["seed_expiration_ms"].as<uint32_t>(
+                config.security.seedExpirationMs);
+        config.security.maxSeedPoolSize =
+            security["max_seed_pool_size"].as<uint32_t>(
+                config.security.maxSeedPoolSize);
+    }
+
+    // ---------------------------------------------------------------
+    // sec.someip - provider parameters; IDs stay anchored to the Registry
+    // ---------------------------------------------------------------
+    config.someip.applicationName = SEC_APPLICATION_NAME;
+    config.someip.serviceId = SEC_SERVICE_ID;
+    config.someip.instanceId = SEC_INSTANCE_ID;
+    config.someip.getSeedMethodId = METHOD_GET_SEED;
+    config.someip.verifyKeyMethodId = METHOD_VERIFY_KEY;
+    config.someip.deriveOtaSessionMethodId = METHOD_DERIVE_OTA_SESSION;
+    config.someip.deriveByUidMethodId = METHOD_DERIVE_BY_UID;
+    config.someip.wrapByUidMethodId = METHOD_WRAP_BY_UID;
+    config.someip.endpointPort = SEC_SOMEIP_PORT;
+    config.someip.endpointProtocol = SEC_SOMEIP_PROTOCOL;
+
+    if (const YAML::Node someip = sec["someip"]) {
+        rejectUnknownKeys(someip,
+                          {"application_name", "service_id", "instance_id",
+                           "methods", "endpoint", "service_discovery"},
+                          "sec.someip");
+
+        config.someip.applicationName =
+            someip["application_name"].as<std::string>(
+                config.someip.applicationName);
+        if (!config.someip.applicationName.empty() &&
+            config.someip.applicationName != SEC_APPLICATION_NAME) {
+            throw std::runtime_error(
+                "sec.someip.application_name must stay '" +
+                std::string(SEC_APPLICATION_NAME) +
+                "' (one process uses one vsomeip application)");
         }
-        if (config["key_files"]) {
-            YAML::Node keyFiles = config["key_files"];
-            for (auto it = keyFiles.begin(); it != keyFiles.end(); ++it) {
-                seHsmConfig.keyFiles[it->first.as<std::string>()] = it->second.as<std::string>();
+        config.someip.serviceId =
+            someip["service_id"].as<uint16_t>(config.someip.serviceId);
+        config.someip.instanceId =
+            someip["instance_id"].as<uint16_t>(config.someip.instanceId);
+
+        if (const YAML::Node methods = someip["methods"]) {
+            rejectUnknownKeys(methods,
+                              {"get_seed", "verify_key", "derive_ota_session",
+                               "derive_by_uid", "wrap_by_uid"},
+                              "sec.someip.methods");
+            config.someip.getSeedMethodId = parseMethodId(
+                methods, "get_seed", config.someip.getSeedMethodId,
+                "sec.someip.methods");
+            config.someip.verifyKeyMethodId = parseMethodId(
+                methods, "verify_key", config.someip.verifyKeyMethodId,
+                "sec.someip.methods");
+            config.someip.deriveOtaSessionMethodId = parseMethodId(
+                methods, "derive_ota_session",
+                config.someip.deriveOtaSessionMethodId,
+                "sec.someip.methods");
+            config.someip.deriveByUidMethodId = parseMethodId(
+                methods, "derive_by_uid", config.someip.deriveByUidMethodId,
+                "sec.someip.methods");
+            config.someip.wrapByUidMethodId = parseMethodId(
+                methods, "wrap_by_uid", config.someip.wrapByUidMethodId,
+                "sec.someip.methods");
+        }
+
+        if (const YAML::Node endpoint = someip["endpoint"]) {
+            rejectUnknownKeys(endpoint, {"port", "protocol", "unicast"},
+                              "sec.someip.endpoint");
+            config.someip.endpointPort =
+                endpoint["port"].as<uint16_t>(config.someip.endpointPort);
+            config.someip.endpointProtocol =
+                endpoint["protocol"].as<std::string>(
+                    config.someip.endpointProtocol);
+            config.someip.endpointUnicast =
+                endpoint["unicast"].as<std::string>(
+                    config.someip.endpointUnicast);
+            if (config.someip.endpointProtocol != "TCP" &&
+                config.someip.endpointProtocol != "UDP") {
+                throw std::runtime_error(
+                    "sec.someip.endpoint.protocol must be TCP or UDP");
             }
         }
 
-        return seHsmConfig;
-    } catch (const std::exception& e) {
-        throw std::runtime_error("Failed to load SE/HSM config: " + std::string(e.what()));
+        if (const YAML::Node sd = someip["service_discovery"]) {
+            rejectUnknownKeys(sd,
+                              {"enabled", "mode", "multicast_address", "port"},
+                              "sec.someip.service_discovery");
+            config.someip.serviceDiscoveryEnabled =
+                sd["enabled"].as<bool>(config.someip.serviceDiscoveryEnabled);
+            config.someip.serviceDiscoveryMode =
+                sd["mode"].as<std::string>(config.someip.serviceDiscoveryMode);
+            config.someip.serviceDiscoveryMulticastAddress =
+                sd["multicast_address"].as<std::string>(
+                    config.someip.serviceDiscoveryMulticastAddress);
+            config.someip.serviceDiscoveryPort =
+                sd["port"].as<uint16_t>(config.someip.serviceDiscoveryPort);
+            if (!config.someip.serviceDiscoveryMode.empty() &&
+                config.someip.serviceDiscoveryMode != "static" &&
+                config.someip.serviceDiscoveryMode != "dynamic") {
+                throw std::runtime_error(
+                    "sec.someip.service_discovery.mode must be static or dynamic");
+            }
+        }
     }
-}
 
-ccu::fw::log::LogConfig ConfigLoader::loadLogConfig(const std::string& path) {
-    ccu::fw::log::LogConfig log_config;
-    // 默认值
-    log_config.schema_version = 1;
-    log_config.level = ccu::fw::log::LogLevel::kInfo;
-    log_config.strict = false;
-    log_config.format = "standard";
-
-    try {
-        YAML::Node root = YAML::LoadFile(path);
-        parseLogConfigNode(root, log_config);
-    } catch (const YAML::Exception&) {
-        // 配置加载失败时返回默认配置，由调用方决定是否严格模式终止
+    // ---------------------------------------------------------------
+    // sec.se_hsm - adapter selection; no secret material is ever parsed
+    // ---------------------------------------------------------------
+    config.se_hsm.type = "unconfigured";
+    if (const YAML::Node se_hsm = sec["se_hsm"]) {
+        rejectUnknownKeys(se_hsm, {"type", "adapter"}, "sec.se_hsm");
+        config.se_hsm.type = se_hsm["type"].as<std::string>(config.se_hsm.type);
+        if (config.se_hsm.type.empty()) {
+            throw std::runtime_error("sec.se_hsm.type must not be empty");
+        }
+        if (isForbiddenConfigKey(config.se_hsm.type) ||
+            config.se_hsm.type.find('/') != std::string::npos) {
+            throw std::runtime_error(
+                "sec.se_hsm.type must not reference key files or paths");
+        }
+        if (const YAML::Node adapter = se_hsm["adapter"]) {
+            requireMap(adapter, "sec.se_hsm.adapter");
+            for (auto it = adapter.begin(); it != adapter.end(); ++it) {
+                const std::string key = it->first.as<std::string>();
+                if (isForbiddenConfigKey(key)) {
+                    throw std::runtime_error(
+                        "sec.se_hsm.adapter." + key +
+                        " is a secret/provisioning field and must not be released");
+                }
+                const YAML::Node value = it->second;
+                if (!value.IsScalar()) {
+                    throw std::runtime_error(
+                        "sec.se_hsm.adapter." + key +
+                        " must be a non-secret scalar value");
+                }
+                const std::string text = value.as<std::string>();
+                if (isForbiddenStorageLocation(text)) {
+                    throw std::runtime_error(
+                        "sec.se_hsm.adapter." + key +
+                        " must not use /tmp as a security store");
+                }
+                config.se_hsm.adapter[key] = text;
+            }
+        }
     }
 
-    return log_config;
+    // ---------------------------------------------------------------
+    // Logging: common.log.* from BUILD common.yaml, sec.log.* overrides
+    // from the unified service file. No second deep-merge algorithm.
+    // ---------------------------------------------------------------
+    YAML::Node common_root = loadYamlFile(common_config_path, "common config");
+    requireMap(common_root, "common config");
+
+    config.log.schema_version = 1;
+    config.log.level = ccu::fw::log::LogLevel::kInfo;
+    config.log.strict = false;
+    config.log.format = "standard";
+    parseLogConfigNode(common_root, config.log);
+    parseLogConfigNode(root, config.log);
+
+    return config;
 }
 
 void ConfigLoader::parseLogConfigNode(const YAML::Node& root,

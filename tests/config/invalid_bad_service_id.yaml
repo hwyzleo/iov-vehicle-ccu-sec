@@ -1,0 +1,7 @@
+# NEGATIVE: Service ID is Registry-assigned and must be non-zero
+sec:
+  someip:
+    service_id: 0
+    instance_id: 0x0001
+  se_hsm:
+    type: software

@@ -24,6 +24,16 @@ public:
     KeyResult deriveByUid(const std::string& subKeyName, const std::vector<uint8_t>& context, uint8_t level);
     SecureDataResult wrapByUid(const std::vector<uint8_t>& data, uint8_t level);
 
+    /// 进程存活不等于安全能力 ready（CCU-SEC-DSN-CR-005 §6.2）。
+    bool securityReady() const { return securityReady_; }
+
+#ifdef CCU_SEC_ENABLE_SOFTWARE_HSM
+    /// 仅非生产构建（HOST/test）可用的夹具入口：由测试显式注入逻辑根材料。
+    /// 生产初始化绝不调用它，也不从配置推导任何密钥材料。
+    CcuSecErrorCode provisionTestKey(const std::string& keyName,
+                                     const std::vector<uint8_t>& keyMaterial);
+#endif
+
 private:
     SecConfig secConfig_;
     SomeipConfig someipConfig_;
@@ -36,6 +46,7 @@ private:
     std::unique_ptr<SecurityGuard> securityGuard_;
 
     bool running_;
+    bool securityReady_ = false;
 
     void initialize();
 };

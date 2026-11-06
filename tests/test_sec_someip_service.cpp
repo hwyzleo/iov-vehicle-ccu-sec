@@ -8,14 +8,11 @@ using namespace ccu_sec;
 class SecSomeipServiceTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        storagePath_ = "/tmp/ccu_sec_test_someip_service";
-        std::filesystem::create_directories(storagePath_);
-
-        secConfig_.seHsmType = "software";
         secConfig_.defaultSecurityLevel = 1;
         secConfig_.seedExpirationMs = 30000;
         secConfig_.maxSeedPoolSize = 100;
 
+        someipConfig_.applicationName = SEC_APPLICATION_NAME;
         someipConfig_.serviceId = 0x1234;
         someipConfig_.instanceId = 0x5678;
         someipConfig_.getSeedMethodId = 0x0001;
@@ -24,21 +21,25 @@ protected:
         someipConfig_.deriveByUidMethodId = 0x0004;
         someipConfig_.wrapByUidMethodId = 0x0005;
 
+        // 非生产夹具：software SE/HSM 仅在显式非生产构建开关下可用。
         seHsmConfig_.type = "software";
-        seHsmConfig_.storagePath = storagePath_;
-        seHsmConfig_.keyFiles["OTA_VEHICLE_ROOT"] = "keys/ota_vehicle_root.bin";
-        seHsmConfig_.keyFiles["CCU_DEVICE_ROOT"] = "keys/ccu_device_root.bin";
-        seHsmConfig_.keyFiles["DIAG_SEEDKEY_SECRET"] = "keys/diag_seedkey_secret.bin";
 
         service_ = std::make_unique<SecSomeipService>(secConfig_, someipConfig_, seHsmConfig_);
+
+        // 生产初始化绝不从配置推导根密钥；测试夹具显式注入逻辑根材料
+        // （CCU-SEC-DSN-CR-005 §5.2/§6.2）。
+        std::vector<uint8_t> ota_root(32, 0x42);
+        std::vector<uint8_t> device_root(32, 0x42);
+        ASSERT_EQ(service_->provisionTestKey(OTA_VEHICLE_ROOT_KEY_NAME, ota_root),
+                  CcuSecErrorCode::SUCCESS);
+        ASSERT_EQ(service_->provisionTestKey(CCU_DEVICE_ROOT_KEY_NAME, device_root),
+                  CcuSecErrorCode::SUCCESS);
     }
 
     void TearDown() override {
         service_.reset();
-        std::filesystem::remove_all(storagePath_);
     }
 
-    std::string storagePath_;
     SecConfig secConfig_;
     SomeipConfig someipConfig_;
     SeHsmConfig seHsmConfig_;

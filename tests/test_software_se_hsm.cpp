@@ -11,7 +11,6 @@ protected:
     void SetUp() override {
         SeHsmConfig config;
         config.type = "software";
-        config.storagePath = "/tmp/test_se_hsm";
         hsm = SeHsmFactory::create(config);
     }
 
@@ -144,7 +143,6 @@ TEST_F(SoftwareSeHsmTest, SecureLoadWrongKey) {
 TEST_F(SoftwareSeHsmTest, FactoryCreatesSoftwareHsm) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_factory";
     auto hsm = SeHsmFactory::create(config);
     EXPECT_NE(hsm, nullptr);
 }
@@ -152,7 +150,6 @@ TEST_F(SoftwareSeHsmTest, FactoryCreatesSoftwareHsm) {
 TEST_F(SoftwareSeHsmTest, FactoryCreatesNullptrForUnknownType) {
     SeHsmConfig config;
     config.type = "unknown";
-    config.storagePath = "/tmp/test_factory";
     auto hsm = SeHsmFactory::create(config);
     EXPECT_EQ(hsm, nullptr);
 }

@@ -1,0 +1,7 @@
+# NEGATIVE: top-level common: is owned by BUILD /etc/ccu/common.yaml
+common:
+  log:
+    level: INFO
+sec:
+  se_hsm:
+    type: software

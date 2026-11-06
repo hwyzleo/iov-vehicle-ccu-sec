@@ -1,0 +1,10 @@
+# NEGATIVE: method IDs must be unique inside the service
+sec:
+  someip:
+    methods:
+      get_seed:
+        method_id: 0x0001
+      verify_key:
+        method_id: 0x0001
+  se_hsm:
+    type: software

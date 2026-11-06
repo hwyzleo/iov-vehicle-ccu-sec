@@ -10,20 +10,19 @@ using namespace ccu_sec;
 class SecSomeipServerTest : public ::testing::Test {
 protected:
     void SetUp() override {
-        // 构建配置文件的绝对路径
+        // 统一配置（开发夹具），不依赖源码树 WorkingDirectory 的运行时路径。
         std::string sourceDir = SOURCE_DIR;
-        std::string secConfigPath = sourceDir + "/config/sec_config.yaml";
-        std::string someipConfigPath = sourceDir + "/config/someip_config.yaml";
-        std::string seHsmConfigPath = sourceDir + "/config/se_hsm_config.yaml";
-        
-        // 加载测试配置
-        secConfig_ = ConfigLoader::loadSecConfig(secConfigPath);
-        someipConfig_ = ConfigLoader::loadSomeipConfig(someipConfigPath);
-        seHsmConfig_ = ConfigLoader::loadSeHsmConfig(seHsmConfigPath);
-        
+        auto unified = ConfigLoader::loadUnifiedConfig(
+            sourceDir + "/config/dev/sec.yaml",
+            sourceDir + "/config/dev/common.yaml");
+
+        secConfig_ = unified.security;
+        someipConfig_ = unified.someip;
+        seHsmConfig_ = unified.se_hsm;
+
         // 创建服务实例
         service_ = std::make_shared<SecSomeipService>(secConfig_, someipConfig_, seHsmConfig_);
-        
+
         // 创建服务端实例
         server_ = std::make_unique<SecSomeipServer>(service_, someipConfig_);
     }

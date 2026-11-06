@@ -1,0 +1,4 @@
+# NEGATIVE: adapter selection is mandatory (safe placeholder or approved)
+sec:
+  security:
+    default_security_level: 1

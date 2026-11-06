@@ -36,7 +36,6 @@ TEST(OtaSessionResultTest, DefaultConstruction) {
 
 TEST(SecConfigTest, DefaultConstruction) {
     SecConfig config;
-    EXPECT_TRUE(config.seHsmType.empty());
     EXPECT_EQ(config.defaultSecurityLevel, 0);
     EXPECT_EQ(config.seedExpirationMs, 0);
     EXPECT_EQ(config.maxSeedPoolSize, 0);
@@ -44,6 +43,7 @@ TEST(SecConfigTest, DefaultConstruction) {
 
 TEST(SomeipConfigTest, DefaultConstruction) {
     SomeipConfig config;
+    EXPECT_TRUE(config.applicationName.empty());
     EXPECT_EQ(config.serviceId, 0);
     EXPECT_EQ(config.instanceId, 0);
     EXPECT_EQ(config.getSeedMethodId, 0);
@@ -51,11 +51,17 @@ TEST(SomeipConfigTest, DefaultConstruction) {
     EXPECT_EQ(config.deriveOtaSessionMethodId, 0);
     EXPECT_EQ(config.deriveByUidMethodId, 0);
     EXPECT_EQ(config.wrapByUidMethodId, 0);
+    EXPECT_EQ(config.endpointPort, 0);
+    EXPECT_TRUE(config.endpointProtocol.empty());
+    EXPECT_TRUE(config.endpointUnicast.empty());
+    EXPECT_FALSE(config.serviceDiscoveryEnabled);
+    EXPECT_TRUE(config.serviceDiscoveryMode.empty());
+    EXPECT_TRUE(config.serviceDiscoveryMulticastAddress.empty());
+    EXPECT_EQ(config.serviceDiscoveryPort, 0);
 }
 
 TEST(SeHsmConfigTest, DefaultConstruction) {
     SeHsmConfig config;
     EXPECT_TRUE(config.type.empty());
-    EXPECT_TRUE(config.storagePath.empty());
-    EXPECT_TRUE(config.keyFiles.empty());
+    EXPECT_TRUE(config.adapter.empty());
 }

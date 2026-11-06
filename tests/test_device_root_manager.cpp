@@ -12,7 +12,6 @@ protected:
     void SetUp() override {
         SeHsmConfig config;
         config.type = "software";
-        config.storagePath = "/tmp/test_device_root_mgr";
         hsm = std::shared_ptr<SeHsmInterface>(SeHsmFactory::create(config).release());
 
         std::vector<uint8_t> deviceRootKey = {
@@ -35,7 +34,6 @@ TEST_F(DeviceRootManagerTest, IsDeviceRootAvailableTrue) {
 TEST_F(DeviceRootManagerTest, IsDeviceRootAvailableFalse) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_device_no_root";
     std::shared_ptr<SeHsmInterface> emptyHsm(SeHsmFactory::create(config).release());
 
     DeviceRootManager emptyManager(emptyHsm);
@@ -64,7 +62,6 @@ TEST_F(DeviceRootManagerTest, DeriveSubKeyDifferentContexts) {
 TEST_F(DeviceRootManagerTest, DeriveSubKeyMissingRoot) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_device_no_root2";
     std::shared_ptr<SeHsmInterface> emptyHsm(SeHsmFactory::create(config).release());
 
     DeviceRootManager emptyManager(emptyHsm);
@@ -83,7 +80,6 @@ TEST_F(DeviceRootManagerTest, WrapDataSuccess) {
 TEST_F(DeviceRootManagerTest, WrapDataMissingRoot) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_device_no_root3";
     std::shared_ptr<SeHsmInterface> emptyHsm(SeHsmFactory::create(config).release());
 
     DeviceRootManager emptyManager(emptyHsm);
@@ -105,7 +101,6 @@ TEST_F(DeviceRootManagerTest, UnwrapDataSuccess) {
 TEST_F(DeviceRootManagerTest, UnwrapDataMissingRoot) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_device_no_root4";
     std::shared_ptr<SeHsmInterface> emptyHsm(SeHsmFactory::create(config).release());
 
     DeviceRootManager emptyManager(emptyHsm);

@@ -12,7 +12,6 @@ protected:
     void SetUp() override {
         SeHsmConfig config;
         config.type = "software";
-        config.storagePath = "/tmp/test_ota_session_mgr";
         hsm = std::shared_ptr<SeHsmInterface>(SeHsmFactory::create(config).release());
 
         std::vector<uint8_t> otaRootKey = {
@@ -37,7 +36,6 @@ TEST_F(OtaSessionManagerTest, IsOtaVehicleRootAvailableTrue) {
 TEST_F(OtaSessionManagerTest, IsOtaVehicleRootAvailableFalse) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_ota_no_root";
     std::shared_ptr<SeHsmInterface> emptyHsm(SeHsmFactory::create(config).release());
 
     OtaSessionManager emptyManager(emptyHsm);
@@ -78,7 +76,6 @@ TEST_F(OtaSessionManagerTest, DeriveSessionKeyUniqueHandles) {
 TEST_F(OtaSessionManagerTest, DeriveSessionKeyMissingRoot) {
     SeHsmConfig config;
     config.type = "software";
-    config.storagePath = "/tmp/test_ota_no_root2";
     std::shared_ptr<SeHsmInterface> emptyHsm(SeHsmFactory::create(config).release());
 
     OtaSessionManager emptyManager(emptyHsm);

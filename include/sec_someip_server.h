@@ -17,8 +17,8 @@
     #include "mock_someip_network.h"
     namespace someip = mock_someip;
 #else
-#include <vsomeip/vsomeip.hpp>
-namespace someip = vsomeip;
+// 真实 vsomeip3 后端命名适配（见 someip_vsomeip_compat.h）
+#include "someip_vsomeip_compat.h"
 #endif
 
 namespace ccu_sec {

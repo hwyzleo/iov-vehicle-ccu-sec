@@ -86,11 +86,11 @@ void SecSomeipServer::registerService() {
     // 注册服务
     application_->offer_service(config_.serviceId, config_.instanceId);
     
-    // 注册方法处理器
+    // 注册方法处理器（vsomeip3 按服务整体 offer，无 offer_method；
+    // 方法可达性由 register_message_handler + offer_service 表达）
     for (const auto& pair : methodHandlers_) {
         auto methodId = pair.first;
         auto handler = pair.second;
-        application_->offer_method(config_.serviceId, config_.instanceId, methodId);
         application_->register_message_handler(
             config_.serviceId, config_.instanceId, methodId,
             [this, handler](const std::shared_ptr<someip::Message>& request) {
